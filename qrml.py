@@ -40,6 +40,7 @@ FEATURE_PATH  = os.path.join(BASE_DIR, "feature_columns.pkl")
 model           = joblib.load(MODEL_PATH)
 feature_columns = joblib.load(FEATURE_PATH)
 
+_shap_init_error = "None"
 try:
     try:
         _shap_explainer = shap.TreeExplainer(model.get_booster())
@@ -48,6 +49,7 @@ try:
 except Exception as e:
     import traceback
     traceback.print_exc()
+    _shap_init_error = str(e)
     _shap_explainer = None
 
 WHOIS_FALLBACK_AGE_DAYS = 90
@@ -168,7 +170,7 @@ def extract_features(url):
 def get_shap_explanation(df_row):
     """Return [{feature, value, shap_value}, ...] sorted by |shap_value| desc."""
     if _shap_explainer is None:
-        return [{"feature": "SHAP Initialization Failed (check server logs)", "value": 0.0, "shap_value": 0.0}]
+        return [{"feature": f"Init Error: {_shap_init_error}", "value": 0.0, "shap_value": 0.0}]
     try:
         shap_values = _shap_explainer.shap_values(df_row.values)
         

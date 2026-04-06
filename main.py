@@ -268,7 +268,11 @@ def analyze_url_directly(url: str):
 # ──────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+    try:
+        return templates.TemplateResponse(request=request, name="index.html")
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"<h1>Fatal Render Error</h1><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.post("/scan")
 async def scan_qr(file: UploadFile = File(...)):

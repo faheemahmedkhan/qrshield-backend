@@ -44,8 +44,16 @@ _shap_init_error = "None"
 try:
     try:
         _shap_explainer = shap.TreeExplainer(model.get_booster())
-    except AttributeError:
-        _shap_explainer = shap.TreeExplainer(model)
+    except Exception:
+        try:
+            _shap_explainer = shap.TreeExplainer(model)
+        except Exception:
+            import numpy as np
+            import pandas as pd
+            # XGBoost serialization bug fallback: use model-agnostic KernelExplainer
+            bg = pd.DataFrame(np.zeros((1, len(feature_columns))), columns=feature_columns)
+            _shap_explainer = shap.KernelExplainer(model.predict_proba, bg)
+
 except Exception as e:
     import traceback
     traceback.print_exc()

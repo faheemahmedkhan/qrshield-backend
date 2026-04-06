@@ -268,7 +268,7 @@ def analyze_url_directly(url: str):
 # ──────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html")
 
 @app.post("/scan")
 async def scan_qr(file: UploadFile = File(...)):

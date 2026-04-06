@@ -29,9 +29,12 @@ DEBUG     = False
 DEBUG_DIR = "qr_debug"
 os.makedirs(DEBUG_DIR, exist_ok=True)
 
+import gc
+
 print("Loading DL model...")
 dl_model = qrdl.load_model()
 print("DL model loaded.")
+gc.collect() # Force garbage collection of massive setup artifacts
 
 # ──────────────────────────────────────────
 # Debug helper

@@ -50,9 +50,13 @@ try:
         except Exception:
             import numpy as np
             import pandas as pd
-            # XGBoost serialization bug fallback: use model-agnostic KernelExplainer
+            
+            # Wrapper to safely dodge scikit-learn read-only attributes on the class instance
+            def proxy_predict(X):
+                return model.predict_proba(pd.DataFrame(X, columns=feature_columns))
+
             bg = pd.DataFrame(np.zeros((1, len(feature_columns))), columns=feature_columns)
-            _shap_explainer = shap.KernelExplainer(model.predict_proba, bg)
+            _shap_explainer = shap.KernelExplainer(proxy_predict, bg)
 
 except Exception as e:
     import traceback

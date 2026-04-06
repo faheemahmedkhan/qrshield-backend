@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+qr_debug/
+temp_scan.png
+.env
+.DS_Store

@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+python-multipart
+jinja2
+numpy
+Pillow
+pyzbar
+opencv-python-headless
+joblib
+pandas
+requests
+dnspython
+tldextract
+shap
+xgboost
+torch
+torchvision

@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <title>QRShield — QR Threat Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060a12;
+      --bg2: #0b1120;
+      --surface: rgba(14, 22, 38, 0.78);
+      --surf2: rgba(10, 16, 28, 0.92);
+      --surf3: rgba(18, 28, 46, 0.94);
+      --border: rgba(100, 160, 255, 0.12);
+      --border2: rgba(100, 160, 255, 0.22);
+      --accent: #3d84ff;
+      --accent2: #50d0ff;
+      --success: #00f5a0;
+      --success2: #00d4ff;
+      --danger: #ff3d6b;
+      --warn: #ffb836;
+      --purple: #a855f7;
+      --pink: #f472b6;
+      --text: #eaf2ff;
+      --muted: #7a8faf;
+      --muted2: #9eb3d4;
+      --heading: 'Syne', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --glow-blue: 0 0 40px rgba(61, 132, 255, 0.28);
+      --glow-green: 0 0 40px rgba(0, 245, 160, 0.22);
+      --glow-red: 0 0 40px rgba(255, 61, 107, 0.28);
+      --glass: blur(20px) saturate(1.6);
+      --card-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: #060a12;
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated mesh background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 900px 600px at 15% 10%, rgba(61, 132, 255, 0.22) 0%, transparent 60%),
+        radial-gradient(ellipse 700px 500px at 85% 80%, rgba(0, 245, 160, 0.14) 0%, transparent 55%),
+        radial-gradient(ellipse 600px 400px at 75% 10%, rgba(168, 85, 247, 0.12) 0%, transparent 50%),
+        linear-gradient(180deg, #070c18 0%, #04080f 100%);
+      pointer-events: none;
+      z-index: 0;
+      animation: bgPulse 14s ease-in-out infinite alternate;
+    }
+
+    @keyframes bgPulse {
+      0% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.82;
+      }
+
+      100% {
+        opacity: 1;
+      }
+    }
+
+    /* Subtle grid overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(61, 132, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(61, 132, 255, 0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+    }
+
+    /* ─── Layout ─── */
+    .app-wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 24px 20px 72px;
+    }
+
+    /* ─── Header ─── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 28px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: var(--glass);
+      -webkit-backdrop-filter: var(--glass);
+      border-radius: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(61, 132, 255, 0.6) 30%, rgba(0, 245, 160, 0.5) 70%, transparent 100%);
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .logo-mark {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-text h1 {
+      font-family: var(--heading);
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      background: linear-gradient(135deg, #eaf2ff 0%, #a0c8ff 50%, #50d0ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo-text p {
+      font-size: .68rem;
+      color: var(--muted);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .65rem;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 245, 160, 0.4);
+      background: linear-gradient(135deg, #1a253c, #0c1422);
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .header-status {
+      display: contents;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(0, 245, 160, .15), 0 0 12px var(--success);
+      animation: pulse-dot 2.4s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse-dot {
+
+      0%,
+      100% {
+        opacity: 1;
+        box-shadow: 0 0 0 3px rgba(0, 245, 160, .15), 0 0 12px var(--success);
+      }
+
+      50% {
+        opacity: .7;
+        box-shadow: 0 0 0 5px rgba(0, 245, 160, .08), 0 0 6px var(--success);
+      }
+    }
+
+    /* ─── Hero ─── */
+    .hero {
+      display: block;
+      margin-bottom: 24px;
+      padding: 36px 36px;
+      background: linear-gradient(135deg,
+          rgba(61, 132, 255, 0.1) 0%,
+          rgba(10, 16, 28, 0.88) 40%,
+          rgba(0, 245, 160, 0.07) 100%);
+      border: 1px solid rgba(61, 132, 255, 0.15);
+      border-radius: 22px;
+      box-shadow: var(--card-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(61, 132, 255, 0.5), rgba(0, 245, 160, 0.4), transparent);
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -80px;
+      right: -80px;
+      width: 280px;
+      height: 280px;
+      background: radial-gradient(circle, rgba(61, 132, 255, 0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .65rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 14px;
+      font-weight: 700;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent2);
+      box-shadow: 0 0 12px var(--accent2);
+    }
+
+    .hero h2 {
+      font-family: var(--heading);
+      font-size: clamp(1.7rem, 3vw, 2.8rem);
+      line-height: 1.1;
+      letter-spacing: -0.05em;
+      margin-bottom: 14px;
+      background: linear-gradient(135deg, #eaf2ff 0%, #b8d8ff 60%, #50d0ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      max-width: 100%;
+      color: var(--muted2);
+      line-height: 1.8;
+      font-size: 1rem;
+    }
+
+    .hero-meta {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .hero-chip {
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(8, 14, 24, .65);
+      border: 1px solid rgba(61, 132, 255, 0.12);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+      transition: border-color .2s, transform .2s;
+    }
+
+    .hero-chip:hover {
+      border-color: rgba(61, 132, 255, 0.3);
+      transform: translateX(3px);
+    }
+
+    .hero-chip strong {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .78rem;
+      margin-bottom: 4px;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .hero-chip strong::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--success));
+      flex-shrink: 0;
+    }
+
+    .hero-chip span {
+      color: var(--muted);
+      font-size: .68rem;
+      line-height: 1.5;
+    }
+
+    /* ─── Section label ─── */
+    .section-label {
+      font-size: .64rem;
+      color: var(--accent2);
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      margin: 18px 2px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+    }
+
+    .section-label::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: linear-gradient(135deg, var(--accent), var(--success));
+      box-shadow: 0 0 14px rgba(61, 132, 255, .5);
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(61, 132, 255, .3), transparent);
+    }
+
+    /* ─── Cards ─── */
+    .card {
+      background: rgba(12, 20, 36, 0.72);
+      border: 1px solid rgba(61, 132, 255, 0.1);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+      transition: transform .2s ease, border-color .25s ease, box-shadow .25s ease;
+      backdrop-filter: var(--glass);
+      -webkit-backdrop-filter: var(--glass);
+      box-shadow: var(--card-shadow);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(61, 132, 255, 0.35) 30%, rgba(0, 245, 160, 0.28) 70%, transparent 100%);
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(61, 132, 255, 0.22);
+      box-shadow: 0 28px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    /* ─── Camera ─── */
+    .cam-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      min-height: clamp(380px, 46vw, 560px);
+      border-radius: 18px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 40%, rgba(79, 140, 255, .1), transparent 40%),
+        #03050a;
+      border: 1px solid rgba(148, 163, 184, .14);
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: contrast(1.02) saturate(1.04);
+    }
+
+    .cam-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .scan-frame {
+      position: relative;
+      width: 54%;
+      aspect-ratio: 1;
+      border-radius: 20px;
+      box-shadow: inset 0 0 0 1px rgba(103, 215, 255, .08);
+    }
+
+    .scan-frame::before,
+    .scan-frame::after,
+    .scan-frame .c3,
+    .scan-frame .c4 {
+      content: '';
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-color: var(--accent2);
+      border-style: solid;
+      opacity: .95;
+    }
+
+    .scan-frame::before {
+      top: -1px;
+      left: -1px;
+      border-width: 2px 0 0 2px;
+      border-radius: 6px 0 0 0;
+    }
+
+    .scan-frame::after {
+      top: -1px;
+      right: -1px;
+      border-width: 2px 2px 0 0;
+      border-radius: 0 6px 0 0;
+    }
+
+    .scan-frame .c3 {
+      bottom: -1px;
+      left: -1px;
+      border-width: 0 0 2px 2px;
+      border-radius: 0 0 0 6px;
+    }
+
+    .scan-frame .c4 {
+      bottom: -1px;
+      right: -1px;
+      border-width: 0 2px 2px 0;
+      border-radius: 0 0 6px 0;
+    }
+
+    .scan-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent2), transparent);
+      box-shadow: 0 0 12px rgba(103, 215, 255, .6);
+      animation: scan-sweep 2.4s ease-in-out infinite;
+      top: 0;
+    }
+
+    @keyframes scan-sweep {
+      0% {
+        top: 5%;
+        opacity: 0;
+      }
+
+      12% {
+        opacity: 1;
+      }
+
+      88% {
+        opacity: 1;
+      }
+
+      100% {
+        top: 95%;
+        opacity: 0;
+      }
+    }
+
+    .cam-corners-glow {
+      position: absolute;
+      inset: 0;
+      box-shadow: inset 0 0 80px rgba(79, 140, 255, .08);
+      pointer-events: none;
+    }
+
+    .cam-label {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(9, 14, 24, .82);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(148, 163, 184, .16);
+      color: var(--muted2);
+      font-size: .72rem;
+      padding: 8px 14px;
+      border-radius: 999px;
+      white-space: nowrap;
+      letter-spacing: .02em;
+    }
+
+    /* ─── Input Controls ─── */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .file-label {
+      flex: 1;
+      min-width: 180px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surf2);
+      border: 1px dashed rgba(148, 163, 184, .22);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: .82rem;
+      color: var(--muted2);
+      cursor: pointer;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: border-color .2s, color .2s, background .2s, transform .15s ease;
+    }
+
+    .file-label:hover {
+      border-color: var(--accent);
+      color: var(--text);
+      background: rgba(79, 140, 255, .07);
+      transform: translateY(-1px);
+    }
+
+    .file-label svg {
+      flex-shrink: 0;
+      opacity: .7;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 12px 20px;
+      font-size: .78rem;
+      font-family: var(--sans);
+      font-weight: 700;
+      letter-spacing: .02em;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s cubic-bezier(.34, 1.56, .64, 1), box-shadow .2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .btn:hover::after {
+      opacity: 1;
+    }
+
+    .btn:active {
+      transform: scale(.96);
+    }
+
+    .btn:disabled {
+      opacity: .35;
+      cursor: default;
+    }
+
+    .btn-cyan {
+      background: linear-gradient(135deg, #3d84ff, #50d0ff);
+      color: #030d1c;
+      box-shadow: 0 8px 24px rgba(61, 132, 255, .35), inset 0 1px 0 rgba(255, 255, 255, .2);
+    }
+
+    .btn-cyan:hover:not(:disabled) {
+      box-shadow: 0 12px 32px rgba(61, 132, 255, .5);
+      transform: translateY(-1px);
+    }
+
+    .btn-green {
+      background: linear-gradient(135deg, #00f5a0, #00d4c8);
+      color: #020e0a;
+      box-shadow: 0 8px 24px rgba(0, 245, 160, .3), inset 0 1px 0 rgba(255, 255, 255, .2);
+    }
+
+    .btn-green:hover:not(:disabled) {
+      box-shadow: 0 12px 32px rgba(0, 245, 160, .45);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: rgba(16, 26, 44, 0.9);
+      color: var(--text);
+      border: 1px solid rgba(61, 132, 255, .18);
+    }
+
+    .btn-ghost:hover:not(:disabled) {
+      border-color: rgba(61, 132, 255, .38);
+      background: rgba(20, 34, 58, .95);
+      transform: translateY(-1px);
+    }
+
+    /* ─── Preview ─── */
+    .preview-row {
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+    }
+
+    .preview-img-wrap {
+      width: 96px;
+      height: 96px;
+      flex-shrink: 0;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, .16);
+      overflow: hidden;
+      background: var(--surf2);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .03);
+    }
+
+    #preview {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #fff;
+    }
+
+    .preview-placeholder {
+      color: var(--muted);
+      font-size: 1.5rem;
+      opacity: .45;
+    }
+
+    .preview-meta {
+      font-size: .86rem;
+      color: var(--muted2);
+      line-height: 1.8;
+      flex: 1;
+      padding-top: 2px;
+    }
+
+    .preview-meta strong {
+      color: var(--text);
+    }
+
+    /* ─── Status Badge ─── */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      font-family: var(--heading);
+      font-size: .85rem;
+      font-weight: 800;
+      padding: 10px 18px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      position: relative;
+      overflow: hidden;
+      transition: transform .15s;
+    }
+
+    .status-badge:hover {
+      transform: scale(1.03);
+    }
+
+    .status-badge .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .b-safe {
+      background: rgba(0, 245, 160, .08);
+      color: var(--success);
+      border: 1px solid rgba(0, 245, 160, .28);
+      box-shadow: 0 0 24px rgba(0, 245, 160, .12), inset 0 1px 0 rgba(0, 245, 160, .1);
+    }
+
+    .b-safe .badge-dot {
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success), 0 0 20px rgba(0, 245, 160, 0.4);
+    }
+
+    .b-sus {
+      background: rgba(255, 184, 54, .08);
+      color: var(--warn);
+      border: 1px solid rgba(255, 184, 54, .28);
+      box-shadow: 0 0 24px rgba(255, 184, 54, .12), inset 0 1px 0 rgba(255, 184, 54, .1);
+    }
+
+    .b-sus .badge-dot {
+      background: var(--warn);
+      box-shadow: 0 0 10px var(--warn), 0 0 20px rgba(255, 184, 54, 0.4);
+    }
+
+    .b-mal {
+      background: rgba(255, 61, 107, .08);
+      color: var(--danger);
+      border: 1px solid rgba(255, 61, 107, .3);
+      box-shadow: 0 0 28px rgba(255, 61, 107, .15), inset 0 1px 0 rgba(255, 61, 107, .1);
+    }
+
+    .b-mal .badge-dot {
+      background: var(--danger);
+      box-shadow: 0 0 10px var(--danger), 0 0 22px rgba(255, 61, 107, 0.5);
+      animation: pulse-dot 1s ease-in-out infinite;
+    }
+
+    .b-unk {
+      background: rgba(120, 140, 180, .07);
+      color: var(--muted2);
+      border: 1px solid rgba(120, 140, 180, .2);
+    }
+
+    .b-unk .badge-dot {
+      background: var(--muted);
+    }
+
+    /* ─── URL box ─── */
+    .url-label {
+      font-size: .68rem;
+      color: var(--accent2);
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .url-box {
+      background: rgba(6, 10, 18, .9);
+      border: 1px solid rgba(148, 163, 184, .18);
+      border-radius: 14px;
+      padding: 12px 14px 12px 16px;
+      font-size: .82rem;
+      color: var(--text);
+      word-break: break-all;
+      line-height: 1.65;
+      position: relative;
+      font-family: var(--mono);
+    }
+
+    .url-box::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 6px;
+      bottom: 6px;
+      width: 3px;
+      background: linear-gradient(180deg, var(--accent), var(--success));
+      border-radius: 3px;
+    }
+
+    /* ─── Divider ─── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(148, 163, 184, .26), transparent);
+      margin: 20px 0;
+    }
+
+    /* ─── Score bars ─── */
+    .score-row {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .score-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+
+    .score-name {
+      font-size: .68rem;
+      color: var(--muted2);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .score-val {
+      font-size: .88rem;
+      font-weight: 600;
+      font-family: var(--heading);
+      color: var(--text);
+    }
+
+    .bar-track {
+      height: 10px;
+      background: rgba(4, 8, 16, 0.95);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(61, 132, 255, 0.1);
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      width: 0;
+      transition: width .9s cubic-bezier(.34, 1.56, .64, 1);
+      position: relative;
+    }
+
+    .bar-fill::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 16px;
+      background: rgba(255, 255, 255, 0.35);
+      border-radius: 999px;
+      filter: blur(4px);
+    }
+
+    .bar-ml {
+      background: linear-gradient(90deg, #3d84ff, #a855f7);
+      box-shadow: 0 0 16px rgba(61, 132, 255, 0.4);
+    }
+
+    .bar-dl {
+      background: linear-gradient(90deg, #fb923c, #f43f5e);
+      box-shadow: 0 0 16px rgba(251, 146, 60, 0.4);
+    }
+
+    .bar-fusion {
+      background: linear-gradient(90deg, var(--accent), var(--success));
+      box-shadow: 0 0 16px rgba(0, 245, 160, 0.3);
+    }
+
+    .score-note {
+      font-size: .74rem;
+      color: var(--muted);
+      margin-top: 7px;
+      line-height: 1.6;
+    }
+
+    /* ─── Info grid ─── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .info-cell {
+      background: rgba(4, 8, 16, 0.8);
+      border: 1px solid rgba(61, 132, 255, 0.1);
+      border-radius: 14px;
+      padding: 14px 16px;
+      transition: border-color .2s;
+    }
+
+    .info-cell:hover {
+      border-color: rgba(61, 132, 255, 0.22);
+    }
+
+    .ic-lbl {
+      font-size: .6rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .ic-val {
+      font-size: .92rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.35;
+    }
+
+    /* ─── SHAP bars ─── */
+    .shap-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .shap-row {
+      display: grid;
+      grid-template-columns: 150px 1fr 64px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .shap-feat {
+      font-size: .72rem;
+      color: var(--muted2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: .01em;
+      font-family: var(--mono);
+    }
+
+    .shap-track {
+      position: relative;
+      height: 16px;
+      background: rgba(6, 10, 18, .88);
+      border: 1px solid rgba(148, 163, 184, .14);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .shap-center {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 1px;
+      height: 100%;
+      background: rgba(148, 163, 184, .26);
+    }
+
+    .shap-bar {
+      position: absolute;
+      top: 2px;
+      height: 12px;
+      border-radius: 999px;
+      transition: width .6s cubic-bezier(.4, 0, .2, 1), left .6s;
+    }
+
+    .shap-pos {
+      background: linear-gradient(90deg, rgba(255, 92, 119, .62), rgba(255, 92, 119, .95));
+    }
+
+    .shap-neg {
+      background: linear-gradient(90deg, rgba(36, 209, 143, .95), rgba(36, 209, 143, .62));
+    }
+
+    .shap-num {
+      font-size: .72rem;
+      text-align: right;
+      letter-spacing: .01em;
+      font-family: var(--mono);
+    }
+
+    .shap-num.pos {
+      color: var(--danger);
+    }
+
+    .shap-num.neg {
+      color: var(--success);
+    }
+
+    .shap-note {
+      font-size: .72rem;
+      color: var(--muted);
+      margin-top: 4px;
+      padding-left: 160px;
+      line-height: 1.45;
+    }
+
+    .shap-legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      font-size: .72rem;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+
+    .shap-legend span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .leg-dot {
+      width: 10px;
+      height: 6px;
+      border-radius: 999px;
+    }
+
+    /* ─── Short URL panel ─── */
+    .short-warn {
+      border: 1px solid rgba(245, 165, 36, .24);
+      border-radius: 18px;
+      background: rgba(245, 165, 36, .05);
+      padding: 18px 18px 16px;
+    }
+
+    .short-warn-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .warn-icon {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      background: rgba(245, 165, 36, .12);
+      border: 1px solid rgba(245, 165, 36, .25);
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+    }
+
+    .short-warn-title {
+      font-family: var(--heading);
+      font-weight: 700;
+      font-size: .98rem;
+      color: var(--warn);
+      letter-spacing: .02em;
+    }
+
+    .short-warn-body {
+      font-size: .82rem;
+      color: var(--muted2);
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+
+    .short-warn-body strong {
+      color: var(--text);
+    }
+
+    .short-input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .short-input {
+      flex: 1;
+      background: rgba(6, 10, 18, .9);
+      border: 1px solid rgba(148, 163, 184, .16);
+      border-radius: 14px;
+      padding: 11px 14px;
+      font-family: var(--mono);
+      font-size: .82rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .short-input:focus {
+      border-color: rgba(103, 215, 255, .48);
+      box-shadow: 0 0 0 3px rgba(79, 140, 255, .12);
+    }
+
+    .short-input::placeholder {
+      color: var(--muted);
+    }
+
+    /* ─── Spinner ─── */
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(103, 215, 255, .18);
+      border-top-color: var(--accent2);
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+      vertical-align: middle;
+      margin-left: 5px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ─── Tag row ─── */
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    /* ─── Utility ─── */
+    .hidden {
+      display: none !important;
+    }
+
+    canvas {
+      display: none;
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+
+    .url-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 10px;
+    }
+
+    .btn-sm {
+      padding: 10px 14px;
+      font-size: .72rem;
+      border-radius: 12px;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .score-mini {
+      background: rgba(4, 8, 16, 0.8);
+      border: 1px solid rgba(61, 132, 255, 0.1);
+      border-radius: 18px;
+      padding: 20px 16px 18px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .25s, transform .2s;
+    }
+
+    .score-mini:hover {
+      border-color: rgba(61, 132, 255, 0.25);
+      transform: translateY(-2px);
+    }
+
+    .score-mini::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(61, 132, 255, 0.4), transparent);
+    }
+
+    .score-mini-label {
+      font-size: .6rem;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .score-mini-val {
+      font-family: var(--heading);
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: 'tnum' 1, 'lnum' 1;
+      line-height: 1;
+    }
+
+    .score-mini-val.ml {
+      color: #a78bfa;
+      text-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+    }
+
+    .score-mini-val.dl {
+      color: #fb923c;
+      text-shadow: 0 0 20px rgba(251, 146, 60, 0.4);
+    }
+
+    .score-mini-val.fusion {
+      background: linear-gradient(135deg, var(--accent), var(--success));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 8px rgba(0, 245, 160, 0.3));
+    }
+
+    /* ─── Camera toggle button ─── */
+    .btn-cam {
+      background: linear-gradient(135deg, rgba(61, 132, 255, 0.15), rgba(0, 245, 160, 0.1));
+      color: var(--accent2);
+      border: 1px solid rgba(61, 132, 255, 0.3);
+    }
+
+    .btn-cam:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(61, 132, 255, 0.25), rgba(0, 245, 160, 0.15));
+      border-color: rgba(61, 132, 255, 0.55);
+      box-shadow: 0 0 18px rgba(61, 132, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn-cam.active {
+      background: linear-gradient(135deg, rgba(255, 61, 107, 0.12), rgba(255, 100, 60, 0.08));
+      color: var(--danger);
+      border-color: rgba(255, 61, 107, 0.3);
+    }
+
+    .btn-cam.active:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(255, 61, 107, 0.2), rgba(255, 100, 60, 0.12));
+      border-color: rgba(255, 61, 107, 0.5);
+      box-shadow: 0 0 18px rgba(255, 61, 107, 0.2);
+    }
+
+    /* ─── Camera section header ─── */
+    .cam-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .cam-section-title {
+      font-size: .68rem;
+      color: var(--accent2);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cam-section-title::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse-dot 2.4s ease-in-out infinite;
+    }
+
+    .btn-close-cam {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: rgba(255, 61, 107, 0.1);
+      border: 1px solid rgba(255, 61, 107, 0.22);
+      color: var(--danger);
+      font-size: .9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .2s, border-color .2s, transform .15s;
+      flex-shrink: 0;
+    }
+
+    .btn-close-cam:hover {
+      background: rgba(255, 61, 107, 0.2);
+      border-color: rgba(255, 61, 107, 0.45);
+      transform: scale(1.08);
+    }
+
+    /* ─── Camera slide animation ─── */
+    #cameraSection {
+      overflow: hidden;
+      transition: max-height .45s cubic-bezier(.4, 0, .2, 1), opacity .35s ease, margin-bottom .45s ease;
+      max-height: 0;
+      opacity: 0;
+      margin-bottom: 0;
+      pointer-events: none;
+    }
+
+    #cameraSection.cam-open {
+      max-height: 700px;
+      opacity: 1;
+      margin-bottom: 16px;
+      pointer-events: auto;
+    }
+
+    /* ─── Entry animations ─── */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card,
+    .hero,
+    header {
+      animation: fadeUp .5s cubic-bezier(.22, 1, .36, 1) both;
+    }
+
+    header {
+      animation-delay: 0s;
+    }
+
+    .hero {
+      animation-delay: .08s;
+    }
+
+    .card:nth-of-type(1) {
+      animation-delay: .14s;
+    }
+
+    .card:nth-of-type(2) {
+      animation-delay: .2s;
+    }
+
+    .card:nth-of-type(3) {
+      animation-delay: .26s;
+    }
+
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-meta {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .hero-meta {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-row {
+        flex-direction: column;
+      }
+
+      .preview-img-wrap {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1 / 1;
+      }
+
+      .cam-wrap {
+        min-height: 340px;
+        aspect-ratio: 4 / 5;
+      }
+
+      .shap-row {
+        grid-template-columns: 100px 1fr 52px;
+      }
+
+      .shap-note {
+        padding-left: 110px;
+      }
+
+      .score-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .short-input-row {
+        flex-direction: column;
+      }
+
+      .btn,
+      .file-label {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app-wrapper">
+
+    <!-- ─── Header ─── -->
+    <header>
+      <div class="logo-group">
+        <div class="logo-mark">
+          <img src="/static/Logo.png" alt="QRShield logo" style="height: 64px; width: auto; object-fit: contain;">
+        </div>
+        <div class="logo-text">
+          <h1 style="font-size: 1.25rem; font-weight: 700; background: none; -webkit-text-fill-color: #0c1422; letter-spacing: 0.02em; margin: 0;">QR Threat Intelligence with XAI</h1>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="header-badge">
+          <div class="status-dot"></div>
+          System Online
+        </div>
+      </div>
+    </header>
+
+
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="hero-eyebrow">Security dashboard</div>
+        <h2>Professional QR threat analysis with transparent AI insight</h2>
+        <p>
+          Scan QR codes, inspect shortened links, and review ML, DL, and SHAP results in a cleaner executive-style
+          interface.
+        </p>
+      </div>
+    </section>
+
+    <!-- ─── Camera (hidden by default, toggled on demand) ─── -->
+    <div id="cameraSection">
+      <div class="card" style="margin-bottom:0">
+        <div class="cam-section-header">
+          <div class="cam-section-title">Live Camera Scanner</div>
+          <button class="btn-close-cam" id="closeCamBtn" title="Close camera">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="cam-wrap">
+          <video id="video" autoplay playsinline muted></video>
+          <div class="cam-overlay">
+            <div class="scan-frame" id="scanBox">
+              <span class="c3"></span>
+              <span class="c4"></span>
+              <div class="scan-line"></div>
+            </div>
+          </div>
+          <div class="cam-corners-glow"></div>
+          <div class="cam-label" id="camLabel">Starting camera…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Input ─── -->
+    <div class="section-label">Input</div>
+    <div class="card">
+      <div class="controls">
+        <label class="file-label" for="fileInput" id="fileLabel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          Choose image file…
+        </label>
+        <input type="file" id="fileInput" accept="image/*">
+        <button class="btn btn-ghost" id="uploadBtn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          Analyze File
+        </button>
+        <button class="btn btn-cam" id="toggleCamBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 7l-7 5 7 5V7z" />
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+          </svg>
+          Use Camera
+        </button>
+        <button class="btn btn-green" id="captureBtn" disabled>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M4.5 12.5V7a1 1 0 0 1 1-1h3L10 4h4l1.5 2h3a1 1 0 0 1 1 1v5.5" />
+            <path d="M3 16h18v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2z" />
+          </svg>
+          Capture &amp; Scan
+        </button>
+      </div>
+    </div>
+
+    <!-- ─── Preview ─── -->
+    <div class="section-label">Capture Preview</div>
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-img-wrap">
+          <span class="preview-placeholder" id="previewPlaceholder">⬡</span>
+          <img id="preview" alt="preview" style="display:none">
+        </div>
+        <div class="preview-meta" id="previewMeta">Awaiting scan…</div>
+      </div>
+    </div>
+
+    <!-- ─── Short URL Warning ─── -->
+    <div class="card hidden" id="shortCard">
+      <div class="short-warn">
+        <div class="short-warn-header">
+          <div class="warn-icon">⚠️</div>
+          <div class="short-warn-title">Short URL Detected</div>
+        </div>
+        <div class="short-warn-body">
+          This QR code contains a <strong>shortened URL</strong> — the real destination is hidden behind a redirect
+          service.
+          Short URLs are inherently suspicious because they can mask phishing pages, malware downloads, or scam
+          sites.<br><br>
+          If you know or can find the actual destination URL, paste it below to run a full ML analysis on the real link.
+        </div>
+        <div class="short-input-row">
+          <input class="short-input" id="shortUrlInput" type="url" placeholder="https://actual-destination.com/page">
+          <button class="btn btn-cyan" id="shortAnalyzeBtn">Analyze URL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Result ─── -->
+    <div class="card hidden" id="resultCard">
+      <div class="result-header">
+        <div class="tag-row" id="tagRow" style="margin-bottom:0"></div>
+        <div id="urlSection"></div>
+      </div>
+
+      <!-- Score mini summary -->
+      <div class="score-grid">
+        <div class="score-mini">
+          <div class="score-mini-label">ML Score</div>
+          <div class="score-mini-val ml" id="mlVal">—</div>
+        </div>
+        <div class="score-mini">
+          <div class="score-mini-label">DL Score</div>
+          <div class="score-mini-val dl" id="dlVal">—</div>
+        </div>
+        <div class="score-mini">
+          <div class="score-mini-label">Fusion Score</div>
+          <div class="score-mini-val fusion" id="fusionVal">—</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Score bars detail -->
+      <div class="score-row">
+        <div class="score-item">
+          <div class="score-header">
+            <span class="score-name">ML Probability — URL Feature Analysis</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill bar-ml" id="mlBar"></div>
+          </div>
+          <div class="score-note" id="mlNote"></div>
+        </div>
+        <div class="score-item">
+          <div class="score-header">
+            <span class="score-name">DL Probability — QR Image Distortion</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill bar-dl" id="dlBar"></div>
+          </div>
+          <div class="score-note" id="dlNote"></div>
+        </div>
+        <div class="score-item">
+          <div class="score-header">
+            <span class="score-name">Fusion Score — Combined Decision</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill bar-fusion" id="fusionBar"></div>
+          </div>
+          <div class="score-note" id="fusionNote"></div>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-cell">
+          <div class="ic-lbl">Fusion Mode</div>
+          <div class="ic-val" id="modeVal" style="font-size:.68rem; color:var(--muted2)">—</div>
+        </div>
+        <div class="info-cell">
+          <div class="ic-lbl">Response Time</div>
+          <div class="ic-val" id="timeVal">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SHAP ─── -->
+    <div class="card hidden" id="shapCard">
+      <div class="section-label" style="margin-bottom:16px">XAI — Feature Contributions (SHAP)</div>
+      <div class="shap-chart" id="shapChart"></div>
+      <div class="shap-legend">
+        <span><span class="leg-dot" style="background:rgba(255,58,92,.7)"></span>Increases risk</span>
+        <span><span class="leg-dot" style="background:rgba(0,255,157,.7)"></span>Reduces risk</span>
+      </div>
+    </div>
+
+  </div><!-- end app-wrapper -->
+
+  <canvas id="canvas"></canvas>
+  <canvas id="tmpCanvas"></canvas>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const video = document.getElementById('video');
+      const camLabel = document.getElementById('camLabel');
+      const scanBox = document.getElementById('scanBox');
+      const fileInput = document.getElementById('fileInput');
+      const fileLabel = document.getElementById('fileLabel');
+      const uploadBtn = document.getElementById('uploadBtn');
+      const captureBtn = document.getElementById('captureBtn');
+      const canvas = document.getElementById('canvas');
+      const tmpCanvas = document.getElementById('tmpCanvas');
+      const previewImg = document.getElementById('preview');
+      const previewPlaceholder = document.getElementById('previewPlaceholder');
+      const previewMeta = document.getElementById('previewMeta');
+      const shortCard = document.getElementById('shortCard');
+      const shortUrlInput = document.getElementById('shortUrlInput');
+      const shortAnalyzeBtn = document.getElementById('shortAnalyzeBtn');
+      const resultCard = document.getElementById('resultCard');
+      const tagRow = document.getElementById('tagRow');
+      const urlSection = document.getElementById('urlSection');
+      const mlVal = document.getElementById('mlVal');
+      const dlVal = document.getElementById('dlVal');
+      const fusionVal = document.getElementById('fusionVal');
+      const mlBar = document.getElementById('mlBar');
+      const dlBar = document.getElementById('dlBar');
+      const fusionBar = document.getElementById('fusionBar');
+      const mlNote = document.getElementById('mlNote');
+      const dlNote = document.getElementById('dlNote');
+      const fusionNote = document.getElementById('fusionNote');
+      const modeVal = document.getElementById('modeVal');
+      const timeVal = document.getElementById('timeVal');
+      const shapCard = document.getElementById('shapCard');
+      const shapChart = document.getElementById('shapChart');
+
+      const TIMEOUT = 45000;
+      let busy = false;
+      let cameraReady = false;
+      let cameraOpen = false;
+      let detector = null;
+
+      const cameraSection = document.getElementById('cameraSection');
+      const toggleCamBtn = document.getElementById('toggleCamBtn');
+      const closeCamBtn = document.getElementById('closeCamBtn');
+
+      if ('BarcodeDetector' in window) {
+        try { detector = new BarcodeDetector({ formats: ['qr_code'] }); } catch (_) { }
+      }
+
+      /* ── Camera start / stop ── */
+      async function startCamera() {
+        camLabel.innerText = 'Starting camera…';
+        cameraReady = false;
+        captureBtn.disabled = true;
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 1280 } }
+          });
+          video.srcObject = stream;
+          try { await video.play(); } catch (_) { }
+          await new Promise(res => {
+            if (video.readyState >= 2) { res(); return; }
+            video.addEventListener('loadedmetadata', res, { once: true });
+          });
+          cameraReady = true;
+          captureBtn.disabled = false;
+          camLabel.innerText = 'Aim QR at box · Capture & Scan';
+        } catch (err) {
+          camLabel.innerText = err.name === 'NotAllowedError'
+            ? 'Camera permission denied — use file upload'
+            : 'Camera unavailable — use file upload';
+        }
+      }
+
+      function stopCamera() {
+        if (video.srcObject) {
+          video.srcObject.getTracks().forEach(t => t.stop());
+          video.srcObject = null;
+        }
+        cameraReady = false;
+        captureBtn.disabled = true;
+      }
+
+      function openCameraPanel() {
+        cameraOpen = true;
+        cameraSection.classList.add('cam-open');
+        toggleCamBtn.classList.add('active');
+        toggleCamBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Stop Camera`;
+        startCamera();
+      }
+
+      function closeCameraPanel() {
+        cameraOpen = false;
+        cameraSection.classList.remove('cam-open');
+        toggleCamBtn.classList.remove('active');
+        toggleCamBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> Use Camera`;
+        stopCamera();
+      }
+
+      toggleCamBtn.addEventListener('click', () => {
+        if (cameraOpen) { closeCameraPanel(); } else { openCameraPanel(); }
+      });
+      closeCamBtn.addEventListener('click', closeCameraPanel);
+
+      fileInput.addEventListener('change', () => {
+        const name = fileInput.files[0]?.name ?? 'Choose image file…';
+        fileLabel.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>${esc(name)}`;
+      });
+
+      /* ── Cover-aware scan-box crop ── */
+      function getScanBoxRect() {
+        const vr = video.getBoundingClientRect();
+        const br = scanBox.getBoundingClientRect();
+        const iw = video.videoWidth || vr.width;
+        const ih = video.videoHeight || vr.height;
+        const scale = Math.max(vr.width / iw, vr.height / ih);
+        const ox = (iw * scale - vr.width) / 2;
+        const oy = (ih * scale - vr.height) / 2;
+        return {
+          sx: Math.max(0, Math.floor((br.left - vr.left + ox) / scale)),
+          sy: Math.max(0, Math.floor((br.top - vr.top + oy) / scale)),
+          sw: Math.max(1, Math.floor(br.width / scale)),
+          sh: Math.max(1, Math.floor(br.height / scale)),
+        };
+      }
+
+      function drawScanBoxToCanvas() {
+        const r = getScanBoxRect();
+        canvas.width = r.sw; canvas.height = r.sh;
+        canvas.getContext('2d').drawImage(video, r.sx, r.sy, r.sw, r.sh, 0, 0, r.sw, r.sh);
+        showPreviewImg(canvas.toDataURL('image/jpeg', 0.92));
+      }
+
+      function showPreviewImg(src) {
+        previewImg.src = src;
+        previewImg.style.display = 'block';
+        previewPlaceholder.style.display = 'none';
+      }
+
+      /* ── Send QR image blob to /scan ── */
+      async function sendBlob(blob) {
+        if (busy) return;
+        busy = true;
+        captureBtn.disabled = uploadBtn.disabled = true;
+        previewMeta.innerHTML = 'Analyzing…<span class="spinner"></span>';
+        [resultCard, shapCard, shortCard].forEach(c => c.classList.add('hidden'));
+
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), TIMEOUT);
+        const t0 = performance.now();
+        try {
+          const form = new FormData();
+          form.append('file', blob, 'scan.jpg');
+          const resp = await fetch('/scan', { method: 'POST', body: form, signal: ctrl.signal });
+          clearTimeout(tid);
+          const ms = Math.round(performance.now() - t0);
+          if (!resp.ok) { previewMeta.innerText = `Server error ${resp.status}`; return; }
+          renderResult(await resp.json(), ms);
+        } catch (err) {
+          clearTimeout(tid);
+          previewMeta.innerText = err.name === 'AbortError'
+            ? `Timed out after ${TIMEOUT / 1000}s`
+            : 'Network error: ' + (err.message || err);
+        } finally {
+          busy = false;
+          captureBtn.disabled = uploadBtn.disabled = false;
+        }
+      }
+
+      /* ── Send manual URL to /analyze-url ── */
+      async function sendManualUrl(url) {
+        if (busy) return;
+        busy = true;
+        shortAnalyzeBtn.disabled = true;
+        shortAnalyzeBtn.innerHTML = 'Analyzing…<span class="spinner"></span>';
+        resultCard.classList.add('hidden');
+        shapCard.classList.add('hidden');
+
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), TIMEOUT);
+        const t0 = performance.now();
+        try {
+          const resp = await fetch('/analyze-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+            signal: ctrl.signal,
+          });
+          clearTimeout(tid);
+          const ms = Math.round(performance.now() - t0);
+          if (!resp.ok) { alert(`Server error ${resp.status}`); return; }
+          renderResult(await resp.json(), ms, true);
+        } catch (err) {
+          clearTimeout(tid);
+          alert(err.name === 'AbortError' ? 'Request timed out.' : 'Network error: ' + err.message);
+        } finally {
+          busy = false;
+          shortAnalyzeBtn.disabled = false;
+          shortAnalyzeBtn.textContent = 'Analyze URL';
+        }
+      }
+
+      /* ── Render result ── */
+      function renderResult(data, ms, isManual = false) {
+        const status = (data.status || 'UNKNOWN').toUpperCase();
+
+        /* Badge */
+        const bc = { SAFE: 'b-safe', SUSPICIOUS: 'b-sus', MALICIOUS: 'b-mal' }[status] || 'b-unk';
+        const bi = { SAFE: '✓', SUSPICIOUS: '⚠', MALICIOUS: '✕' }[status] || '?';
+        tagRow.innerHTML = `<span class="status-badge ${bc}"><span class="badge-dot"></span>${bi} ${status}</span>`;
+
+        /* URL */
+        let uHtml = '';
+        const visitUrl = data.decoded_url || data.analyzed_url || data.url || '';
+        if (visitUrl) {
+          uHtml = `<div class="url-label">${isManual ? 'Analyzed URL' : 'Decoded URL'}</div>
+               <div class="url-box">${esc(visitUrl)}</div>
+               <div class="url-actions">
+                 <button class="btn btn-cyan btn-sm" id="visitNowBtn" type="button">Visit Now</button>
+               </div>`;
+        }
+        urlSection.innerHTML = uHtml;
+        const visitNowBtn = document.getElementById('visitNowBtn');
+        if (visitNowBtn && visitUrl) {
+          visitNowBtn.addEventListener('click', () => {
+            window.open(visitUrl, '_blank', 'noopener,noreferrer');
+          });
+        }
+
+        /* Scores */
+        const ml = data.ml_probability ?? 0;
+        const dl = data.dl_probability ?? 0;
+        const fus = data.fusion_score ?? 0;
+        const pct = v => (Math.min(1, Math.max(0, v)) * 100).toFixed(1) + '%';
+
+        mlVal.textContent = pct(ml);
+        dlVal.textContent = pct(dl);
+        fusionVal.textContent = pct(fus);
+
+        setTimeout(() => {
+          mlBar.style.width = pct(ml);
+          dlBar.style.width = pct(dl);
+          fusionBar.style.width = pct(fus);
+        }, 80);
+
+        mlNote.textContent = mlDesc(ml);
+        dlNote.textContent = isManual
+          ? 'DL not available for manually entered URLs (no QR image).'
+          : dlDesc(dl);
+        fusionNote.textContent = fusionDesc(fus);
+
+        modeVal.textContent = data.fusion_mode || '—';
+        timeVal.textContent = `${ms} ms`;
+
+        previewMeta.innerHTML = `
+      <strong>${status}</strong><br>
+      Fusion: ${pct(fus)}<br>
+      ${data.note ? `<span style="font-size:.6rem;color:var(--muted)">${esc(data.note)}</span><br>` : ''}
+      <span style="color:var(--cyan)">${ms} ms</span>
+    `;
+
+        resultCard.classList.remove('hidden');
+
+        if (!isManual && data.is_short_url) {
+          shortCard.classList.remove('hidden');
+        }
+
+        /* SHAP */
+        const shap = data.shap_explanation || [];
+        if (shap.length > 0) {
+          const top = shap.slice(0, 12);
+          const maxAbs = Math.max(...top.map(s => Math.abs(s.shap_value)), 0.001);
+          shapChart.innerHTML = '';
+
+          top.forEach(item => {
+            const isPos = item.shap_value >= 0;
+            const barPct = (Math.abs(item.shap_value) / maxAbs) * 48;
+
+            const wrap = document.createElement('div');
+            wrap.className = 'shap-item';
+            wrap.innerHTML = `
+          <div class="shap-row">
+            <div class="shap-feat" title="${esc(item.feature)}">${esc(item.feature)}</div>
+            <div class="shap-track">
+              <div class="shap-center"></div>
+              <div class="shap-bar ${isPos ? 'shap-pos' : 'shap-neg'}"
+                   style="width:0%; ${isPos ? 'left:50%' : `left:${50 - barPct}%`}">
+              </div>
+            </div>
+            <div class="shap-num ${isPos ? 'pos' : 'neg'}">${isPos ? '+' : ''}${item.shap_value.toFixed(3)}</div>
+          </div>
+          <div class="shap-note">${shapNote(item)}</div>
+        `;
+            shapChart.appendChild(wrap);
+
+            requestAnimationFrame(() => {
+              const bar = wrap.querySelector('.shap-bar');
+              bar.style.width = barPct + '%';
+            });
+          });
+
+          shapCard.classList.remove('hidden');
+        }
+      }
+
+      /* ── Score descriptions ── */
+      function mlDesc(v) {
+        const p = (v * 100).toFixed(1);
+        if (v < 0.25) return `${p}% — URL features look benign.`;
+        if (v < 0.60) return `${p}% — some suspicious URL features detected.`;
+        return `${p}% — URL features are highly consistent with a malicious site.`;
+      }
+      function dlDesc(v) {
+        const p = (v * 100).toFixed(1);
+        if (v < 0.30) return `${p}% — QR image appears visually clean.`;
+        if (v < 0.58) return `${p}% — QR image may be distorted.`;
+        return `${p}% — QR image appears significantly distorted or tampered.`;
+      }
+      function fusionDesc(v) {
+        const p = (v * 100).toFixed(1);
+        if (v < 0.25) return `${p}% — below 25% threshold → SAFE.`;
+        if (v < 0.60) return `${p}% — within 25–60% range → SUSPICIOUS.`;
+        return `${p}% — above 60% threshold → MALICIOUS.`;
+      }
+
+      /* ── SHAP feature notes ── */
+      function shapNote(item) {
+        const v = item.value;
+        const dir = item.shap_value > 0 ? 'increases' : 'reduces';
+        const notes = {
+          url_length: () => `URL is ${v} chars — longer URLs ${item.shap_value > 0 ? 'are more suspicious' : 'are not unusual here'}.`,
+          hostname_length: () => `Hostname is ${v} chars — ${item.shap_value > 0 ? 'abnormally long hostnames can mask phishing domains' : 'a normal hostname length'}.`,
+          count_dot: () => `${v} dot(s) in URL — ${item.shap_value > 0 ? 'many dots may indicate subdomain abuse' : 'a normal number of dots'}.`,
+          count_dash: () => `${v} dash(es) — ${item.shap_value > 0 ? 'dashes are common in brand-spoofing domains' : 'normal dash usage'}.`,
+          count_at: () => `${v} @ symbol(s) — ${item.shap_value > 0 ? '@ can be used to hide the real URL destination' : 'no @ abuse'}.`,
+          suspicious_words: () => v ? `Suspicious keywords found (e.g. "login", "verify", "bank") — ${dir} risk.` : `No suspicious keywords found — ${dir} risk.`,
+          shortening_service: () => v ? `URL shortener detected — destination is hidden, ${dir} risk.` : `No URL shortener — ${dir} risk.`,
+          domain_age_days: () => `Domain is ~${v} days old — ${item.shap_value > 0 ? 'very new domains are a top phishing indicator' : 'older domains are more likely legitimate'}.`,
+          whois_available: () => v ? `WHOIS is public — legitimate transparency signal, ${dir} risk.` : `WHOIS is hidden — attackers often conceal registration, ${dir} risk.`,
+          dns_resolves: () => v ? `Domain resolves in DNS — site is live, ${dir} risk.` : `Domain does not resolve — highly anomalous, ${dir} risk.`,
+          num_ip_addresses: () => `${v} IP(s) resolved — ${item.shap_value > 0 ? 'single IPs can indicate a newly deployed server' : 'multiple IPs suggest established hosting'}.`,
+          has_mx_record: () => v ? `MX record present — active mail setup, ${dir} risk.` : `No MX record — purpose-built domains often lack one, ${dir} risk.`,
+          http_status_code: () => `HTTP status ${v} — ${item.shap_value > 0 ? 'error or unusual status is suspicious' : 'normal response code'}.`,
+          redirect_count: () => `${v} redirect(s) — ${item.shap_value > 0 ? 'excessive redirects can evade security scanners' : 'minimal redirects are expected'}.`,
+          ssl_valid: () => v ? `HTTPS valid — standard for legitimate sites, ${dir} risk.` : `No HTTPS — unencrypted connection, ${dir} risk.`,
+          uses_https: () => v ? `Uses HTTPS — encrypted connection, ${dir} risk.` : `Uses HTTP — no encryption, ${dir} risk.`,
+          checking_ip_address: () => v ? `Raw IP in URL — very strong phishing signal, ${dir} risk.` : `Domain name used (not raw IP) — ${dir} risk.`,
+          count_special_chars: () => `${v} special char(s) — ${item.shap_value > 0 ? 'high count can indicate URL obfuscation' : 'normal level'}.`,
+          digit_count: () => `${v} digit(s) in URL — ${item.shap_value > 0 ? 'many digits can indicate generated phishing domains' : 'normal digit count'}.`,
+          abnormal_url: () => v ? `URL structure is abnormal — hostname mismatch is a spoofing sign, ${dir} risk.` : `URL structure is normal — ${dir} risk.`,
+          find_dir: () => `${v} slash(es) (path depth) — ${item.shap_value > 0 ? 'deep paths can mimic legitimate structure' : 'normal path depth'}.`,
+          count_per: () => `${v} percent-encoded char(s) — ${item.shap_value > 0 ? 'encoding can hide malicious strings from filters' : 'minimal encoding, normal'}.`,
+          count_ques: () => `${v} question mark(s) — ${item.shap_value > 0 ? 'unusual query strings are sometimes used in phishing' : 'normal for parameterised URLs'}.`,
+          count_equal: () => `${v} equal sign(s) — ${item.shap_value > 0 ? 'many parameters can hide phishing payloads' : 'typical for a legitimate URL with params'}.`,
+          no_of_embed: () => `${v} embedded URL(s) — ${item.shap_value > 0 ? 'double-slash embedding can confuse parsers' : 'no embedded URL tricks'}.`,
+          tld_length: () => `TLD is ${v} chars — ${item.shap_value > 0 ? 'unusual TLDs sometimes evade blocklists' : 'a common, recognised TLD'}.`,
+          fd_length: () => `First path segment is ${v} chars — ${item.shap_value > 0 ? 'long segments can embed fake folder names' : 'a normal path length'}.`,
+        };
+        const fn = notes[item.feature];
+        return fn ? fn() : `Feature "${item.feature.replace(/_/g, ' ')}" = ${v} — ${dir} risk.`;
+      }
+
+      /* ── Capture button ── */
+      captureBtn.addEventListener('click', async () => {
+        if (busy) return;
+        if (!cameraReady) { alert('Camera not ready. Please wait or use file upload.'); return; }
+        drawScanBoxToCanvas();
+
+        let blob = null;
+        if (detector) {
+          try {
+            tmpCanvas.width = canvas.width; tmpCanvas.height = canvas.height;
+            tmpCanvas.getContext('2d').drawImage(canvas, 0, 0);
+            const codes = await detector.detect(tmpCanvas);
+            if (codes.length) {
+              const b = codes[0].boundingBox;
+              const crop = document.createElement('canvas');
+              crop.width = Math.round(b.width); crop.height = Math.round(b.height);
+              crop.getContext('2d').drawImage(canvas,
+                Math.round(b.x), Math.round(b.y), Math.round(b.width), Math.round(b.height),
+                0, 0, crop.width, crop.height);
+              showPreviewImg(crop.toDataURL('image/jpeg', 0.92));
+              blob = await new Promise(res => crop.toBlob(res, 'image/jpeg', 0.92));
+            }
+          } catch (_) { }
+        }
+        if (!blob) blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+        await sendBlob(blob);
+      });
+
+      /* ── Upload button ── */
+      uploadBtn.addEventListener('click', async () => {
+        const f = fileInput.files[0];
+        if (!f) { alert('Choose an image file first.'); return; }
+        showPreviewImg(URL.createObjectURL(f));
+        await sendBlob(f);
+      });
+
+      /* ── Short URL manual analyze ── */
+      shortAnalyzeBtn.addEventListener('click', async () => {
+        const url = shortUrlInput.value.trim();
+        if (!url) { alert('Please enter a URL to analyze.'); return; }
+        await sendManualUrl(url);
+      });
+      shortUrlInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') shortAnalyzeBtn.click();
+      });
+
+      /* ── Utilities ── */
+      function esc(s) {
+        return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+    })();
+  </script>
+</body>
+
+</html>

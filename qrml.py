@@ -1,4 +1,4 @@
-import cv2
+import cv2 # trigger sync 2
 from pyzbar.pyzbar import decode
 import joblib
 import pandas as pd
@@ -193,6 +193,10 @@ def get_shap_explanation(df_row):
                 sv = shap_values[0, :, 1]
             else:
                 sv = shap_values[0]
+                
+        # FORCE DEBUG: 
+        if len(sv) == 0 or len(sv) != len(df_row.columns):
+            return [{"feature": f"SV Shape Error. sv len: {len(sv)}, cols: {len(df_row.columns)}", "value": 0.0, "shap_value": 0.0}]
                 
         explanations = [
             {

@@ -5,8 +5,9 @@ import torch.nn.functional as F
 from torchvision import models, transforms
 from PIL import Image
 
-# Constrain PyTorch thread count to drastically reduce background memory buffer
+# Constrain PyTorch memory allocations to aggressively fit within 512MB RAM limit
 torch.set_num_threads(1)
+torch.set_grad_enabled(False)
 
 
 MODEL_PATH = "best_qr_model.pth"

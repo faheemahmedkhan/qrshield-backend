@@ -41,8 +41,13 @@ model           = joblib.load(MODEL_PATH)
 feature_columns = joblib.load(FEATURE_PATH)
 
 try:
-    _shap_explainer = shap.TreeExplainer(model)
-except Exception:
+    try:
+        _shap_explainer = shap.TreeExplainer(model.get_booster())
+    except AttributeError:
+        _shap_explainer = shap.TreeExplainer(model)
+except Exception as e:
+    import traceback
+    traceback.print_exc()
     _shap_explainer = None
 
 WHOIS_FALLBACK_AGE_DAYS = 90
@@ -163,10 +168,18 @@ def extract_features(url):
 def get_shap_explanation(df_row):
     """Return [{feature, value, shap_value}, ...] sorted by |shap_value| desc."""
     if _shap_explainer is None:
-        return []
+        return [{"feature": "SHAP Initialization Failed (check server logs)", "value": 0.0, "shap_value": 0.0}]
     try:
-        shap_values = _shap_explainer.shap_values(df_row)
-        sv = shap_values[1][0] if isinstance(shap_values, list) else shap_values[0]
+        shap_values = _shap_explainer.shap_values(df_row.values)
+        
+        if isinstance(shap_values, list):
+            sv = shap_values[1][0] if len(shap_values) > 1 else shap_values[0][0]
+        else:
+            if len(shap_values.shape) == 3:
+                sv = shap_values[0, :, 1]
+            else:
+                sv = shap_values[0]
+                
         explanations = [
             {
                 "feature":    fname,
@@ -178,8 +191,9 @@ def get_shap_explanation(df_row):
         explanations.sort(key=lambda x: abs(x["shap_value"]), reverse=True)
         return explanations
     except Exception as e:
-        print(f"[SHAP] failed: {e}")
-        return []
+        import traceback
+        traceback.print_exc()
+        return [{"feature": f"SHAP Error: {str(e)}", "value": 0.0, "shap_value": 0.0}]
 
 # ======================================
 # PREDICTION  — returns (prediction, prob, shap_explanation)
@@ -211,4 +225,28 @@ def predict_url(url):
 
     return prediction, prob, shap_explanation
 
+# ======================================
+# CLI
+# ======================================
 
+if __name__ == "__main__":
+    image_path = input("Enter QR image path: ")
+    url        = extract_url_from_qr(image_path)
+    if not url:
+        print("No QR code detected.")
+    else:
+        print("\nExtracted URL:", url)
+        if is_short_url(url):
+            print("⚠️  SHORT URL DETECTED — destination is hidden.")
+        prediction, probability, shap_exp = predict_url(url)
+        print("Malicious Probability:", round(probability, 4))
+        if probability < 0.30:
+            print("✅ BENIGN")
+        elif probability < 0.70:
+            print("⚠️ SUSPICIOUS")
+        else:
+            print("🚨 MALICIOUS")
+        if shap_exp:
+            print("\nTop 5 Features (SHAP):")
+            for item in shap_exp[:5]:
+                print(f"  {item['feature']:30s} val={item['value']:8.2f}  shap={item['shap_value']:+.4f}")

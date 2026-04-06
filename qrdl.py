@@ -31,7 +31,7 @@ def load_model():
         nn.Linear(model.fc.in_features,2)
     )
 
-    model.load_state_dict(torch.load(MODEL_PATH,map_location=DEVICE))
+    model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE, weights_only=True))
 
     model.to(DEVICE)
 

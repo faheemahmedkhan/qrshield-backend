@@ -404,139 +404,9 @@
       box-shadow: 0 28px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
 
-    /* ─── Camera ─── */
-    .cam-wrap {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      min-height: clamp(380px, 46vw, 560px);
-      border-radius: 18px;
-      overflow: hidden;
-      background:
-        radial-gradient(circle at 50% 40%, rgba(79, 140, 255, .1), transparent 40%),
-        #03050a;
-      border: 1px solid rgba(148, 163, 184, .14);
-    }
+    /* CSS cleanup */
 
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      filter: contrast(1.02) saturate(1.04);
-    }
-
-    .cam-overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-    }
-
-    .scan-frame {
-      position: relative;
-      width: 54%;
-      aspect-ratio: 1;
-      border-radius: 20px;
-      box-shadow: inset 0 0 0 1px rgba(103, 215, 255, .08);
-    }
-
-    .scan-frame::before,
-    .scan-frame::after,
-    .scan-frame .c3,
-    .scan-frame .c4 {
-      content: '';
-      position: absolute;
-      width: 22px;
-      height: 22px;
-      border-color: var(--accent2);
-      border-style: solid;
-      opacity: .95;
-    }
-
-    .scan-frame::before {
-      top: -1px;
-      left: -1px;
-      border-width: 2px 0 0 2px;
-      border-radius: 6px 0 0 0;
-    }
-
-    .scan-frame::after {
-      top: -1px;
-      right: -1px;
-      border-width: 2px 2px 0 0;
-      border-radius: 0 6px 0 0;
-    }
-
-    .scan-frame .c3 {
-      bottom: -1px;
-      left: -1px;
-      border-width: 0 0 2px 2px;
-      border-radius: 0 0 0 6px;
-    }
-
-    .scan-frame .c4 {
-      bottom: -1px;
-      right: -1px;
-      border-width: 0 2px 2px 0;
-      border-radius: 0 0 6px 0;
-    }
-
-    .scan-line {
-      position: absolute;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--accent2), transparent);
-      box-shadow: 0 0 12px rgba(103, 215, 255, .6);
-      animation: scan-sweep 2.4s ease-in-out infinite;
-      top: 0;
-    }
-
-    @keyframes scan-sweep {
-      0% {
-        top: 5%;
-        opacity: 0;
-      }
-
-      12% {
-        opacity: 1;
-      }
-
-      88% {
-        opacity: 1;
-      }
-
-      100% {
-        top: 95%;
-        opacity: 0;
-      }
-    }
-
-    .cam-corners-glow {
-      position: absolute;
-      inset: 0;
-      box-shadow: inset 0 0 80px rgba(79, 140, 255, .08);
-      pointer-events: none;
-    }
-
-    .cam-label {
-      position: absolute;
-      bottom: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(9, 14, 24, .82);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(148, 163, 184, .16);
-      color: var(--muted2);
-      font-size: .72rem;
-      padding: 8px 14px;
-      border-radius: 999px;
-      white-space: nowrap;
-      letter-spacing: .02em;
-    }
+    /* End CSS cleanup */
 
     /* ─── Input Controls ─── */
     .controls {
@@ -1468,34 +1338,7 @@
       </div>
     </section>
 
-    <!-- ─── Camera (hidden by default, toggled on demand) ─── -->
-    <div id="cameraSection">
-      <div class="card" style="margin-bottom:0">
-        <div class="cam-section-header">
-          <div class="cam-section-title">Live Camera Scanner</div>
-          <button class="btn-close-cam" id="closeCamBtn" title="Close camera">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-        <div class="cam-wrap">
-          <video id="video" autoplay playsinline muted></video>
-          <div class="cam-overlay">
-            <div class="scan-frame" id="scanBox">
-              <span class="c3"></span>
-              <span class="c4"></span>
-              <div class="scan-line"></div>
-            </div>
-          </div>
-          <div class="cam-corners-glow"></div>
-          <div class="cam-label" id="camLabel">Starting camera…</div>
-        </div>
-      </div>
-    </div>
-
+    <!-- Camera replaced with native input -->
     <!-- ─── Input ─── -->
     <div class="section-label">Input</div>
     <div class="card">
@@ -1510,6 +1353,10 @@
           Choose image file…
         </label>
         <input type="file" id="fileInput" accept="image/*">
+        
+        <!-- Native Camera hidden input -->
+        <input type="file" id="nativeCameraInput" accept="image/*" capture="environment" style="display:none;">
+
         <button class="btn btn-ghost" id="uploadBtn">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
             stroke-linecap="round" stroke-linejoin="round">
@@ -1525,15 +1372,6 @@
             <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
           </svg>
           Use Camera
-        </button>
-        <button class="btn btn-green" id="captureBtn" disabled>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M4.5 12.5V7a1 1 0 0 1 1-1h3L10 4h4l1.5 2h3a1 1 0 0 1 1 1v5.5" />
-            <path d="M3 16h18v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2z" />
-          </svg>
-          Capture &amp; Scan
         </button>
       </div>
     </div>
@@ -1662,11 +1500,11 @@
       const camLabel = document.getElementById('camLabel');
       const scanBox = document.getElementById('scanBox');
       const fileInput = document.getElementById('fileInput');
+      const nativeCameraInput = document.getElementById('nativeCameraInput');
       const fileLabel = document.getElementById('fileLabel');
       const uploadBtn = document.getElementById('uploadBtn');
-      const captureBtn = document.getElementById('captureBtn');
-      const canvas = document.getElementById('canvas');
-      const tmpCanvas = document.getElementById('tmpCanvas');
+      const toggleCamBtn = document.getElementById('toggleCamBtn');
+      
       const previewImg = document.getElementById('preview');
       const previewPlaceholder = document.getElementById('previewPlaceholder');
       const previewMeta = document.getElementById('previewMeta');
@@ -1692,113 +1530,55 @@
 
       const TIMEOUT = 45000;
       let busy = false;
-      let cameraReady = false;
-      let cameraOpen = false;
-      let detector = null;
 
-      const cameraSection = document.getElementById('cameraSection');
-      const toggleCamBtn = document.getElementById('toggleCamBtn');
-      const closeCamBtn = document.getElementById('closeCamBtn');
+      // Handle Image Selection Logic (for both file uploads and camera shots)
+      function processSelectedFile(file) {
+        if (!file) return;
+        
+        // Show local preview immediately
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          previewImg.src = e.target.result;
+          previewImg.style.display = 'block';
+          previewPlaceholder.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
 
-      if ('BarcodeDetector' in window) {
-        try { detector = new BarcodeDetector({ formats: ['qr_code'] }); } catch (_) { }
+        // Upload to scan engine
+        sendBlob(file);
       }
-
-      /* ── Camera start / stop ── */
-      async function startCamera() {
-        camLabel.innerText = 'Starting camera…';
-        cameraReady = false;
-        captureBtn.disabled = true;
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 1280 } }
-          });
-          video.srcObject = stream;
-          try { await video.play(); } catch (_) { }
-          await new Promise(res => {
-            if (video.readyState >= 2) { res(); return; }
-            video.addEventListener('loadedmetadata', res, { once: true });
-          });
-          cameraReady = true;
-          captureBtn.disabled = false;
-          camLabel.innerText = 'Aim QR at box · Capture & Scan';
-        } catch (err) {
-          camLabel.innerText = err.name === 'NotAllowedError'
-            ? 'Camera permission denied — use file upload'
-            : 'Camera unavailable — use file upload';
-        }
-      }
-
-      function stopCamera() {
-        if (video.srcObject) {
-          video.srcObject.getTracks().forEach(t => t.stop());
-          video.srcObject = null;
-        }
-        cameraReady = false;
-        captureBtn.disabled = true;
-      }
-
-      function openCameraPanel() {
-        cameraOpen = true;
-        cameraSection.classList.add('cam-open');
-        toggleCamBtn.classList.add('active');
-        toggleCamBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Stop Camera`;
-        startCamera();
-      }
-
-      function closeCameraPanel() {
-        cameraOpen = false;
-        cameraSection.classList.remove('cam-open');
-        toggleCamBtn.classList.remove('active');
-        toggleCamBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> Use Camera`;
-        stopCamera();
-      }
-
-      toggleCamBtn.addEventListener('click', () => {
-        if (cameraOpen) { closeCameraPanel(); } else { openCameraPanel(); }
-      });
-      closeCamBtn.addEventListener('click', closeCameraPanel);
 
       fileInput.addEventListener('change', () => {
-        const name = fileInput.files[0]?.name ?? 'Choose image file…';
-        fileLabel.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>${esc(name)}`;
+        const file = fileInput.files[0];
+        if (file) {
+          fileLabel.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>${esc(file.name)}`;
+        }
+      });
+      
+      nativeCameraInput.addEventListener('change', () => {
+        const file = nativeCameraInput.files[0];
+        if (file) {
+          processSelectedFile(file);
+        }
       });
 
-      /* ── Cover-aware scan-box crop ── */
-      function getScanBoxRect() {
-        const vr = video.getBoundingClientRect();
-        const br = scanBox.getBoundingClientRect();
-        const iw = video.videoWidth || vr.width;
-        const ih = video.videoHeight || vr.height;
-        const scale = Math.max(vr.width / iw, vr.height / ih);
-        const ox = (iw * scale - vr.width) / 2;
-        const oy = (ih * scale - vr.height) / 2;
-        return {
-          sx: Math.max(0, Math.floor((br.left - vr.left + ox) / scale)),
-          sy: Math.max(0, Math.floor((br.top - vr.top + oy) / scale)),
-          sw: Math.max(1, Math.floor(br.width / scale)),
-          sh: Math.max(1, Math.floor(br.height / scale)),
-        };
-      }
+      uploadBtn.addEventListener('click', () => {
+        if (fileInput.files.length > 0) {
+          processSelectedFile(fileInput.files[0]);
+        } else {
+          alert("Please select an image first!");
+        }
+      });
 
-      function drawScanBoxToCanvas() {
-        const r = getScanBoxRect();
-        canvas.width = r.sw; canvas.height = r.sh;
-        canvas.getContext('2d').drawImage(video, r.sx, r.sy, r.sw, r.sh, 0, 0, r.sw, r.sh);
-        showPreviewImg(canvas.toDataURL('image/jpeg', 0.92));
-      }
-
-      function showPreviewImg(src) {
-        previewImg.src = src;
-        previewImg.style.display = 'block';
-        previewPlaceholder.style.display = 'none';
-      }
+      toggleCamBtn.addEventListener('click', () => {
+        nativeCameraInput.click();
+      });
 
       /* ── Send QR image blob to /scan ── */
       async function sendBlob(blob) {
         if (busy) return;
         busy = true;
-        captureBtn.disabled = uploadBtn.disabled = true;
+        uploadBtn.disabled = true;
         previewMeta.innerHTML = 'Analyzing…<span class="spinner"></span>';
         [resultCard, shapCard, shortCard].forEach(c => c.classList.add('hidden'));
 
@@ -1820,7 +1600,7 @@
             : 'Network error: ' + (err.message || err);
         } finally {
           busy = false;
-          captureBtn.disabled = uploadBtn.disabled = false;
+          uploadBtn.disabled = false;
         }
       }
 

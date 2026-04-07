@@ -1573,7 +1573,9 @@
                    const minY = Math.min(loc.topLeftCorner.y, loc.topRightCorner.y);
                    const maxY = Math.max(loc.bottomLeftCorner.y, loc.bottomRightCorner.y);
                    
-                   const margin = Math.floor(Math.max(maxX - minX, maxY - minY) * 0.25); // 25% margin
+                   // The DL model requires an extremely tight crop without excessive background.
+                   // A ~4% margin provides just enough quiet zone for the CNN while stripping the background.
+                   const margin = Math.floor(Math.max(maxX - minX, maxY - minY) * 0.04); 
                    
                    let cropX = Math.max(0, minX - margin);
                    let cropY = Math.max(0, minY - margin);

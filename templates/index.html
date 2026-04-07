@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta charset="UTF-8">
   <title>QRShield — QR Threat Intelligence</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -1534,18 +1535,76 @@
       // Handle Image Selection Logic (for both file uploads and camera shots)
       function processSelectedFile(file) {
         if (!file) return;
-        
-        // Show local preview immediately
+
+        // Show local preview immediately as fallback or loading state
         const reader = new FileReader();
         reader.onload = (e) => {
-          previewImg.src = e.target.result;
           previewImg.style.display = 'block';
           previewPlaceholder.style.display = 'none';
+          
+          // Load image fully to process it
+          const img = new Image();
+          img.onload = () => {
+             // Scale down for JS processing to avoid memory crash
+             const maxDim = 1200;
+             let w = img.width;
+             let h = img.height;
+             if (w > maxDim || h > maxDim) {
+                const ratio = Math.min(maxDim / w, maxDim / h);
+                w = Math.round(w * ratio);
+                h = Math.round(h * ratio);
+             }
+             
+             tmpCanvas.width = w;
+             tmpCanvas.height = h;
+             const ctx = tmpCanvas.getContext('2d', { willReadFrequently: true });
+             ctx.drawImage(img, 0, 0, w, h);
+             
+             // Run jsQR
+             if (typeof jsQR !== 'undefined') {
+                const imgData = ctx.getImageData(0, 0, w, h);
+                const code = jsQR(imgData.data, imgData.width, imgData.height);
+                
+                if (code && code.location) {
+                   // Crop the bounds with margin
+                   const loc = code.location;
+                   const minX = Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x);
+                   const maxX = Math.max(loc.topRightCorner.x, loc.bottomRightCorner.x);
+                   const minY = Math.min(loc.topLeftCorner.y, loc.topRightCorner.y);
+                   const maxY = Math.max(loc.bottomLeftCorner.y, loc.bottomRightCorner.y);
+                   
+                   const margin = Math.floor(Math.max(maxX - minX, maxY - minY) * 0.25); // 25% margin
+                   
+                   let cropX = Math.max(0, minX - margin);
+                   let cropY = Math.max(0, minY - margin);
+                   let cropW = Math.min(w - cropX, (maxX - minX) + (margin * 2));
+                   let cropH = Math.min(h - cropY, (maxY - minY) + (margin * 2));
+                   
+                   const cropCanvas = document.createElement('canvas');
+                   cropCanvas.width = cropW;
+                   cropCanvas.height = cropH;
+                   const cropCtx = cropCanvas.getContext('2d');
+                   cropCtx.drawImage(tmpCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+                   
+                   // Update preview with strictly the cropped image
+                   previewImg.src = cropCanvas.toDataURL('image/jpeg', 0.95);
+                   
+                   cropCanvas.toBlob((blob) => {
+                      sendBlob(blob);
+                   }, 'image/jpeg', 0.95);
+                   return; // Stop here, cropped successfully
+                }
+             }
+             
+             // Fallback: If no QR found or jsQR fails, send the downscaled image
+             previewImg.src = tmpCanvas.toDataURL('image/jpeg', 0.85);
+             tmpCanvas.toBlob((blob) => {
+                sendBlob(blob);
+             }, 'image/jpeg', 0.85);
+          };
+          img.src = e.target.result;
         };
         reader.readAsDataURL(file);
-
-        // Upload to scan engine
-        sendBlob(file);
       }
 
       fileInput.addEventListener('change', () => {

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <title>QRShield Pro — Contact Team Eagle</title>
+  <link rel="icon" href="/static/Logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* CSS imported from index.html core */
+    :root {
+      --bg: #060a12;
+      --bg2: #0b1120;
+      --surface: rgba(14, 22, 38, 0.78);
+      --surf2: rgba(10, 16, 28, 0.92);
+      --border2: rgba(100, 160, 255, 0.22);
+      --accent: #3d84ff;
+      --accent2: #50d0ff;
+      --text: #eaf2ff;
+      --muted: #7a8faf;
+      --muted2: #9eb3d4;
+      --heading: 'Syne', sans-serif;
+      --sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --glass: blur(20px) saturate(1.6);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    .app-wrapper { max-width: 900px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; flex: 1; padding: 25px 20px; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; background: rgba(14, 22, 38, 0.45); padding: 12px 20px; border-radius: 16px; border: 1px solid var(--border2); backdrop-filter: var(--glass); }
+    .logo-group { display: flex; align-items: center; gap: 14px; text-decoration: none; cursor: pointer; }
+    
+    .card { background: var(--surface); backdrop-filter: var(--glass); border: 1px solid var(--border2); border-radius: 20px; padding: 40px; margin-bottom: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.45); }
+    .page-title { font-family: var(--heading); font-size: 2.2rem; font-weight: 700; margin-bottom: 10px; color: #fff; text-align: center; }
+    .page-subtitle { font-size: 1rem; color: var(--muted2); text-align: center; margin-bottom: 40px; line-height: 1.6; }
+    
+    .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 40px; }
+    .member-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 12px; transition: transform 0.2s, background 0.2s; }
+    .member-card:hover { transform: translateY(-3px); background: rgba(61,132,255,0.1); border-color: rgba(61,132,255,0.3); }
+    .m-role { color: var(--accent2); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+    .m-name { font-family: var(--heading); font-size: 1.2rem; font-weight: 600; margin-bottom: 8px; color: #fff; }
+    .m-email { color: var(--muted2); font-size: 0.85rem; text-decoration: none; display: flex; align-items: center; gap: 6px; }
+    .m-email:hover { color: #fff; }
+    
+    .dept-box { text-align: center; padding: 30px; background: rgba(0,0,0,0.3); border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
+    .dept-title { color: #fff; font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+    .dept-subtitle { color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+
+    .footer { border-top: 1px solid rgba(255,255,255,0.08); padding: 30px 20px; text-align: center; color: #ffffff; background: linear-gradient(180deg, transparent, rgba(255,255,255,0.06)); font-size: 0.85rem; font-weight: 500; margin-top: auto;}
+    .footer-links { display: flex; justify-content: center; gap: 25px; margin-bottom: 12px; }
+    .footer-links a { color: #ffffff; font-weight: 600; text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--accent2); }
+  </style>
+</head>
+<body>
+  <div class="app-wrapper">
+    <header>
+      <a href="/" class="logo-group">
+        <div class="logo-mark"><img src="/static/Logo.png" alt="QRShield logo" style="height: 48px; width: auto; object-fit: contain;"></div>
+        <div class="logo-text"><h1 style="font-size: 1.1rem; font-weight: 700; color: #eaf2ff; margin: 0;">QRShield Enterprise</h1></div>
+      </a>
+      <a href="/" style="color:var(--muted2); text-decoration:none; font-size:0.85rem; font-weight:600;">← Back to Scanner</a>
+    </header>
+
+    <div class="card">
+      <h2 class="page-title">Team Eagle</h2>
+      <div class="page-subtitle">BS in Cyber Security & Digital Forensics<br>Senior Design Project Capstone</div>
+      
+      <div class="team-grid">
+        <div class="member-card">
+          <div class="m-role">Project Lead</div>
+          <div class="m-name">Faheem Ahmed</div>
+          <a href="mailto:faheemahmedkhan32@gmail.com" class="m-email">✉ faheemahmedkhan32@gmail.com</a>
+        </div>
+        <div class="member-card">
+          <div class="m-role">Core Researcher</div>
+          <div class="m-name">Isha Fatima</div>
+          <a href="mailto:ishafatima171@gmail.com" class="m-email">✉ ishafatima171@gmail.com</a>
+        </div>
+        <div class="member-card">
+          <div class="m-role">Security Analyst</div>
+          <div class="m-name">Mehmood Ul Hassan</div>
+          <a href="mailto:sbmehmood85@gmail.com" class="m-email">✉ sbmehmood85@gmail.com</a>
+        </div>
+        <div class="member-card">
+          <div class="m-role">Project Supervisor</div>
+          <div class="m-name">Dr. Iftikhar Rasheed</div>
+          <a href="mailto:iftikhar.rasheed@iub.edu.pk" class="m-email">✉ iftikhar.rasheed@iub.edu.pk</a>
+        </div>
+      </div>
+
+      <div class="dept-box">
+        <div class="dept-title">Department of Information and Communication Engineering</div>
+        <div class="dept-subtitle">The Islamia University of Bahawalpur<br>Bahawalpur, Pakistan</div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+      <a href="/contact">Contact Team</a>
+    </div>
+    <div>&copy; 2026 QRShield Pro Threat Intelligence. Created by Team Eagle.</div>
+  </footer>
+</body>
+</html>

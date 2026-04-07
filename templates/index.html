@@ -1364,7 +1364,7 @@
     .ticker-content {
       display: flex;
       gap: 30px;
-      animation: tickerScroll 25s linear infinite;
+      animation: tickerScroll 80s linear infinite;
     }
     .ticker-item {
       display: inline-flex;
@@ -1375,88 +1375,50 @@
     .ticker-mal { color: var(--danger); }
     @keyframes tickerScroll {
       0% { transform: translateX(100vw); }
-      100% { transform: translateX(-100%); }
-    }
-
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.8);
-      backdrop-filter: blur(10px);
-      z-index: 10000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-    }
-    .modal-overlay.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    .modal-card {
-      background: var(--surf2);
-      border: 1px solid var(--border2);
-      border-radius: 20px;
-      padding: 30px;
-      max-width: 500px;
-      width: 90%;
-      transform: translateY(20px);
-      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-    .modal-overlay.active .modal-card {
-      transform: translateY(0);
-    }
-    .modal-header {
-      font-family: var(--heading);
-      font-size: 1.3rem;
-      color: var(--text);
-      margin-bottom: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .modal-close {
-      background: none;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 1.2rem;
-    }
-    .modal-close:hover { color: var(--text); }
-    .method-badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 0.7rem;
-      background: rgba(61, 132, 255, 0.15);
-      color: var(--accent2);
-      margin-bottom: 10px;
+      100% { transform: translateX(-100vw); }
     }
 
     .footer {
-      border-top: 1px solid rgba(255,255,255,0.05);
+      border-top: 1px solid rgba(255,255,255,0.08);
       margin-top: 50px;
       padding: 30px 20px;
       text-align: center;
-      color: var(--muted);
-      font-size: 0.8rem;
+      color: #ffffff;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,0.06));
+      font-size: 0.85rem;
+      font-weight: 500;
     }
     .footer-links {
       display: flex;
       justify-content: center;
-      gap: 20px;
-      margin-bottom: 10px;
+      gap: 25px;
+      margin-bottom: 12px;
     }
     .footer-links a {
-      color: var(--muted2);
+      color: #ffffff;
+      font-weight: 600;
       text-decoration: none;
-      transition: color 0.2s;
+      transition: color 0.2s, opacity 0.2s;
       cursor: pointer;
     }
     .footer-links a:hover {
-      color: var(--accent);
+      color: var(--accent2);
+    }
+    
+    /* ── PDF Fix Mode ── */
+    body.pdf-mode {
+      background: #060a12 !important;
+      width: 800px !important;
+    }
+    body.pdf-mode #resultCard {
+      width: 800px !important;
+      max-width: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      margin: 0 !important;
+    }
+    body.pdf-mode .shap-chart, body.pdf-mode .shap-bar {
+      transition: none !important;
     }
   </style>
 </head>
@@ -1476,7 +1438,6 @@
         </div>
       </div>
       <div class="header-right">
-        <button class="btn btn-ghost" id="methodBtn" style="font-size:0.75rem; padding:6px 12px">Methodology</button>
         <div class="header-badge" style="margin-left: 10px;">
           <div class="status-dot"></div>
           System Online
@@ -1672,7 +1633,6 @@
       <div class="footer-links">
         <a href="#">Privacy Policy</a>
         <a href="#">Terms of Service</a>
-        <a href="#">XAI Methodology</a>
         <a href="#">Contact Team</a>
       </div>
       <div>&copy; 2026 QRShield Pro Threat Intelligence. Built for Advanced Detection.</div>
@@ -1682,26 +1642,6 @@
 
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
-
-  <!-- Methodology Modal -->
-  <div class="modal-overlay" id="methodModal">
-    <div class="modal-card">
-      <div class="modal-header">
-        QRShield XAI Architecture
-        <button class="modal-close" id="closeMethodModal">&times;</button>
-      </div>
-      <div class="modal-body" style="font-size: 0.9rem; color: var(--muted2); line-height: 1.5;">
-        <span class="method-badge">Machine Learning Pipeline</span>
-        <p style="margin-bottom:15px">QRShield employs a 3-tier analysis engine. Initial features are extracted from the decoded URL utilizing lexical parameters, structural anomalies, and reputation checking. These are evaluated by a highly-tuned <strong>XGBoost</strong> model.</p>
-        
-        <span class="method-badge">Computer Vision</span>
-        <p style="margin-bottom:15px">Simultaneously, the physical pixels of the QR Code itself are analyzed by a physical-distortion <strong>Deep Learning (CNN)</strong> model to detect tampering such as sticker-overlay attacks.</p>
-        
-        <span class="method-badge">SHAP Explainability</span>
-        <p>Because Black-Box AI is not trusted in Cybersecurity, our system runs a real-time <strong>SHAP Explainer</strong> across the vector space to explicitly mathematically graph exactly *why* the AI made its decision, guaranteeing full forensic transparency.</p>
-      </div>
-    </div>
-  </div>
 
   <canvas id="canvas"></canvas>
   <canvas id="tmpCanvas"></canvas>
@@ -2087,62 +2027,60 @@
       // Replace generic alerts with beautiful Toasts
       window.alert = (msg) => showToast(msg, 'error');
 
-      // Methodology Modal
-      const methodBtn = document.getElementById('methodBtn');
-      const methodModal = document.getElementById('methodModal');
-      const closeMethodModal = document.getElementById('closeMethodModal');
-      
-      methodBtn.addEventListener('click', () => methodModal.classList.add('active'));
-      closeMethodModal.addEventListener('click', () => methodModal.classList.remove('active'));
-      methodModal.addEventListener('click', (e) => {
-        if(e.target === methodModal) methodModal.classList.remove('active');
-      });
-
       // PDF Export
       const exportPdfBtn = document.getElementById('exportPdfBtn');
       if (exportPdfBtn) {
         exportPdfBtn.addEventListener('click', () => {
           const el = document.getElementById('resultCard');
-          // Temporarily hide the button during the snapshot
+          
+          // Force layout into a strict absolute width explicitly for pdf rendering
+          document.body.classList.add('pdf-mode');
           exportPdfBtn.style.display = 'none';
-          const opt = {
-            margin: 0.5,
-            filename: 'QRShield_Threat_Report.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0b1120' },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-          };
-          html2pdf().set(opt).from(el).save().then(() => {
-            exportPdfBtn.style.display = 'block';
-            showToast('PDF Report generated successfully!', 'success');
-          });
+          
+          setTimeout(() => {
+            const opt = {
+              margin: 0.5,
+              filename: 'QRShield_Threat_Report.pdf',
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { scale: 2, useCORS: true, backgroundColor: '#060a12' },
+              jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(el).save().then(() => {
+              document.body.classList.remove('pdf-mode');
+              exportPdfBtn.style.display = 'block';
+              showToast('PDF Report generated successfully!', 'success');
+            });
+          }, 300); // 300ms delay to guarantee browser repaints DOM before snapshot
         });
       }
 
-      // Live Threat Feed Ticker
+      // Live Threat Feed Ticker (Real Database)
       const tickerContent = document.getElementById('tickerContent');
-      const dummyUrls = [
-        'https://secure-login.bank-update.com/auth',
-        'http://verify-account-info-status.net/',
-        'https://dropbox.com/s/12345/file.pdf',
-        'https://github.com/microsoft',
-        'http://bit.ly/9xOpa1',
-        'https://aws.amazon.com/console',
-        'https://paypal-auth-verify.com',
-        'https://apple.com/iphone'
-      ];
-      setInterval(() => {
+      async function updateTicker() {
         if(!tickerContent) return;
-        const item = document.createElement('div');
-        item.className = 'ticker-item';
-        const isMal = Math.random() > 0.6;
-        const url = dummyUrls[Math.floor(Math.random() * dummyUrls.length)];
-        item.innerHTML = isMal ? `<span class="ticker-mal">✕ MALICIOUS</span> ${url}` : `<span class="ticker-safe">✓ SAFE</span> ${url}`;
-        tickerContent.appendChild(item);
-        if(tickerContent.children.length > 25) {
-          tickerContent.firstChild.remove();
-        }
-      }, 3500);
+        try {
+          const resp = await fetch('/recent-scans');
+          const data = await resp.json();
+          tickerContent.innerHTML = '';
+          if (!data.scans || data.scans.length === 0) {
+             tickerContent.innerHTML = '<div class="ticker-item"><span class="ticker-safe">⚡ SYSTEM LIVE</span> Awaiting real scans...</div>';
+             return;
+          }
+          data.scans.forEach(scan => {
+            const item = document.createElement('div');
+            item.className = 'ticker-item';
+            const isMal = scan.status === 'MALICIOUS';
+            const displayUrl = scan.url.length > 50 ? scan.url.substring(0, 47) + '...' : scan.url;
+            item.innerHTML = isMal 
+                ? `<span class="ticker-mal">✕ MALICIOUS</span> ${esc(displayUrl)}` 
+                : `<span class="ticker-safe">✓ ${scan.status}</span> ${esc(displayUrl)}`;
+            tickerContent.appendChild(item);
+          });
+        } catch(e) { console.error('Ticker sync error', e); }
+      }
+      
+      updateTicker();
+      setInterval(updateTicker, 10000);
 
       /* ── Short URL manual analyze ── */
       shortAnalyzeBtn.addEventListener('click', async () => {

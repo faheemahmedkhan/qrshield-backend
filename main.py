@@ -23,6 +23,28 @@ app = FastAPI(title="QRShield API")
 # Mount the static directory so we can serve Logo.png
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+import sqlite3
+
+def init_db():
+    conn = sqlite3.connect("scans.db")
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS scans
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, url TEXT, status TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def log_scan_to_db(url, status):
+    if not url or status == "UNKNOWN": return
+    try:
+        conn = sqlite3.connect("scans.db", timeout=5)
+        c = conn.cursor()
+        c.execute("INSERT INTO scans (url, status) VALUES (?, ?)", (url, status))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("[DB ERROR]", e)
 templates = Jinja2Templates(directory="templates")
 
 DEBUG     = False
@@ -236,6 +258,10 @@ def analyze_qr(image):
     except Exception as e:
         result["error"] = str(e)
 
+    # Log to DB before returning
+    if result.get("decoded_url") and result.get("status"):
+        log_scan_to_db(result["decoded_url"], result["status"])
+
     return result
 
 # ──────────────────────────────────────────
@@ -261,6 +287,10 @@ def analyze_url_directly(url: str):
         result["status"]        = risk_decision(ml_prob)
     except Exception as e:
         result["error"] = str(e)
+        
+    if result.get("decoded_url") and result.get("status"):
+        log_scan_to_db(result["decoded_url"], result["status"])
+
     return result
 
 # ──────────────────────────────────────────
@@ -270,9 +300,21 @@ def analyze_url_directly(url: str):
 async def home(request: Request):
     try:
         return templates.TemplateResponse(request=request, name="index.html")
-    except Exception as e:
+    except Exception:
         import traceback
         return HTMLResponse(content=f"<h1>Fatal Render Error</h1><pre>{traceback.format_exc()}</pre>", status_code=500)
+
+@app.get("/contact", response_class=HTMLResponse)
+async def contact(request: Request):
+    return templates.TemplateResponse(request=request, name="contact.html")
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy(request: Request):
+    return templates.TemplateResponse(request=request, name="privacy.html")
+
+@app.get("/terms", response_class=HTMLResponse)
+async def terms(request: Request):
+    return templates.TemplateResponse(request=request, name="terms.html")
 
 @app.post("/scan")
 async def scan_qr(file: UploadFile = File(...)):
@@ -297,3 +339,17 @@ async def analyze_url(payload: UrlPayload):
         r["error"]  = str(e)
         r["status"] = "ERROR"
         return r
+
+@app.get("/recent-scans")
+async def recent_scans():
+    """Returns the latest max 30 scans for the ticker."""
+    try:
+        conn = sqlite3.connect("scans.db", timeout=5)
+        c = conn.cursor()
+        c.execute("SELECT url, status FROM scans ORDER BY timestamp DESC LIMIT 30")
+        rows = c.fetchall()
+        conn.close()
+        return {"scans": [{"url": r[0], "status": r[1]} for r in rows]}
+    except Exception as e:
+        return {"scans": []}
+

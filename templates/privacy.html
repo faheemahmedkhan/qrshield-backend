@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <title>QRShield Pro — Privacy Policy</title>
+  <link rel="icon" href="/static/Logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060a12;
+      --bg2: #0b1120;
+      --surface: rgba(14, 22, 38, 0.78);
+      --border2: rgba(100, 160, 255, 0.22);
+      --accent: #3d84ff;
+      --accent2: #50d0ff;
+      --text: #eaf2ff;
+      --muted: #7a8faf;
+      --muted2: #9eb3d4;
+      --heading: 'Syne', sans-serif;
+      --sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --glass: blur(20px) saturate(1.6);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    .app-wrapper { max-width: 900px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; flex: 1; padding: 25px 20px; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; background: rgba(14, 22, 38, 0.45); padding: 12px 20px; border-radius: 16px; border: 1px solid var(--border2); backdrop-filter: var(--glass); }
+    .logo-group { display: flex; align-items: center; gap: 14px; text-decoration: none; cursor: pointer; }
+    
+    .card { background: var(--surface); backdrop-filter: var(--glass); border: 1px solid var(--border2); border-radius: 20px; padding: 40px; margin-bottom: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.45); }
+    .page-title { font-family: var(--heading); font-size: 2.2rem; font-weight: 700; margin-bottom: 30px; color: #fff; }
+    
+    .legal-content h3 { font-family: var(--heading); color: var(--accent2); margin-top: 30px; margin-bottom: 15px; font-size: 1.2rem; }
+    .legal-content p { color: var(--muted2); line-height: 1.7; margin-bottom: 20px; font-size: 0.95rem; }
+    .legal-content ul { color: var(--muted2); line-height: 1.7; margin-bottom: 20px; font-size: 0.95rem; padding-left: 20px; }
+    .legal-content li { margin-bottom: 8px; }
+
+    .footer { border-top: 1px solid rgba(255,255,255,0.08); padding: 30px 20px; text-align: center; color: #ffffff; background: linear-gradient(180deg, transparent, rgba(255,255,255,0.06)); font-size: 0.85rem; font-weight: 500; margin-top: auto;}
+    .footer-links { display: flex; justify-content: center; gap: 25px; margin-bottom: 12px; }
+    .footer-links a { color: #ffffff; font-weight: 600; text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--accent2); }
+  </style>
+</head>
+<body>
+  <div class="app-wrapper">
+    <header>
+      <a href="/" class="logo-group">
+        <div class="logo-mark"><img src="/static/Logo.png" alt="QRShield logo" style="height: 48px; width: auto; object-fit: contain;"></div>
+        <div class="logo-text"><h1 style="font-size: 1.1rem; font-weight: 700; color: #eaf2ff; margin: 0;">QRShield Enterprise</h1></div>
+      </a>
+      <a href="/" style="color:var(--muted2); text-decoration:none; font-size:0.85rem; font-weight:600;">← Back to Scanner</a>
+    </header>
+
+    <div class="card">
+      <h2 class="page-title">Privacy Policy</h2>
+      <div class="legal-content">
+        <p><strong>Effective Date:</strong> April 2026<br>
+        <strong>Developed By:</strong> Team Eagle (BS Cyber Security & Digital Forensics, The Islamia University of Bahawalpur)</p>
+
+        <h3>1. Information We Collect</h3>
+        <p>QRShield operates as an academic cybersecurity research product designed to detect malicious QR codes and URLs. When you use our service, we collect limited non-personally identifiable information required for structural threat analysis:</p>
+        <ul>
+          <li><strong>QR Code Imagery:</strong> Images containing QR codes submitted for analysis. These images are kept temporarily in memory for deep learning evaluation and discard mechanisms.</li>
+          <li><strong>Scanned URLs:</strong> Decoded Uniform Resource Locators (URLs) extracted from the QR codes to analyze structural and lexical threats via Machine Learning.</li>
+          <li><strong>Global Live Threat Feed Data:</strong> The application timestamps and broadcasts non-private scanned domains on the public live threat ticker for statistical academic demonstration.</li>
+        </ul>
+
+        <h3>2. Uncollected Information</h3>
+        <p>Because QRShield is an active security mitigation product, we deeply respect our users' privacy. We <strong>do not</strong> collect:</p>
+        <ul>
+          <li>Personally Identifiable Information (PII) such as Names, Addresses, or Contact Numbers.</li>
+          <li>Camera hardware or continuous system level recordings (images capture is explicitly manual).</li>
+          <li>Personal credentials or data accessed maliciously by analyzed URLs.</li>
+        </ul>
+
+        <h3>3. Real-Time Tracking & Database Retention</h3>
+        <p>URLs processed through the engine are added to an internal academic log database for system tuning and to power the Live Global Threat Feed simulator. The associated labels (Malicious, Suspicious, Safe) and domain names will be visible to concurrent system users. Database structures are ephemeral and subject to erasure during server rebuilds.</p>
+
+        <h3>4. Academic and Commercial Limitations</h3>
+        <p>This software is produced as a Senior Design Capstone Project for the Department of Information and Communication Engineering at IUB. The developers (Team Eagle) are not liable for direct, indirect, incidental, or consequential damages resulting from false positives or false negatives during threat analysis. All data generated acts as a tool for cyber forensics and does not constitute legally binding determinations of domain intent.</p>
+
+        <h3>5. Contact Information</h3>
+        <p>For research queries regarding data management or internal Machine Learning parameter requests, please reach out to Team Eagle via the <a href="/contact" style="color:var(--accent2)">Contact Team</a> page.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+      <a href="/contact">Contact Team</a>
+    </div>
+    <div>&copy; 2026 QRShield Pro Threat Intelligence. Created by Team Eagle.</div>
+  </footer>
+</body>
+</html>

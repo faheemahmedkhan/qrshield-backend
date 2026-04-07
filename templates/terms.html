@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <title>QRShield Pro — Terms of Service</title>
+  <link rel="icon" href="/static/Logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060a12;
+      --bg2: #0b1120;
+      --surface: rgba(14, 22, 38, 0.78);
+      --border2: rgba(100, 160, 255, 0.22);
+      --accent: #3d84ff;
+      --accent2: #50d0ff;
+      --text: #eaf2ff;
+      --muted: #7a8faf;
+      --muted2: #9eb3d4;
+      --heading: 'Syne', sans-serif;
+      --sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --glass: blur(20px) saturate(1.6);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    .app-wrapper { max-width: 900px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; flex: 1; padding: 25px 20px; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; background: rgba(14, 22, 38, 0.45); padding: 12px 20px; border-radius: 16px; border: 1px solid var(--border2); backdrop-filter: var(--glass); }
+    .logo-group { display: flex; align-items: center; gap: 14px; text-decoration: none; cursor: pointer; }
+    
+    .card { background: var(--surface); backdrop-filter: var(--glass); border: 1px solid var(--border2); border-radius: 20px; padding: 40px; margin-bottom: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.45); }
+    .page-title { font-family: var(--heading); font-size: 2.2rem; font-weight: 700; margin-bottom: 30px; color: #fff; }
+    
+    .legal-content h3 { font-family: var(--heading); color: var(--accent2); margin-top: 30px; margin-bottom: 15px; font-size: 1.2rem; }
+    .legal-content p { color: var(--muted2); line-height: 1.7; margin-bottom: 20px; font-size: 0.95rem; }
+    .legal-content ul { color: var(--muted2); line-height: 1.7; margin-bottom: 20px; font-size: 0.95rem; padding-left: 20px; }
+    .legal-content li { margin-bottom: 8px; }
+
+    .footer { border-top: 1px solid rgba(255,255,255,0.08); padding: 30px 20px; text-align: center; color: #ffffff; background: linear-gradient(180deg, transparent, rgba(255,255,255,0.06)); font-size: 0.85rem; font-weight: 500; margin-top: auto;}
+    .footer-links { display: flex; justify-content: center; gap: 25px; margin-bottom: 12px; }
+    .footer-links a { color: #ffffff; font-weight: 600; text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--accent2); }
+  </style>
+</head>
+<body>
+  <div class="app-wrapper">
+    <header>
+      <a href="/" class="logo-group">
+        <div class="logo-mark"><img src="/static/Logo.png" alt="QRShield logo" style="height: 48px; width: auto; object-fit: contain;"></div>
+        <div class="logo-text"><h1 style="font-size: 1.1rem; font-weight: 700; color: #eaf2ff; margin: 0;">QRShield Enterprise</h1></div>
+      </a>
+      <a href="/" style="color:var(--muted2); text-decoration:none; font-size:0.85rem; font-weight:600;">← Back to Scanner</a>
+    </header>
+
+    <div class="card">
+      <h2 class="page-title">Terms of Service</h2>
+      <div class="legal-content">
+        <p><strong>Effective Date:</strong> April 2026<br>
+        <strong>Developed By:</strong> Team Eagle (BS Cyber Security & Digital Forensics, The Islamia University of Bahawalpur)</p>
+
+        <h3>1. Acceptance of Terms</h3>
+        <p>By accessing or using QRShield Pro ("The Platform"), you agree to be bound by these Terms of Service. If you disagree with any part of these terms, you may not access the scanning tool. This service is provided primarily as an academic technology demonstrator for advanced cybersecurity capabilities.</p>
+
+        <h3>2. Service Description and Purpose</h3>
+        <p>QRShield utilizes cutting-edge Deep Learning (CNN) algorithms and Explainable Artificial Intelligence (XGBoost + SHAP) to estimate the threat vector associated with physical QR code structures and URL lexicons. 
+        <br><br>
+        The platform provides <strong>probabilistic security assessments</strong>, not absolute guarantees. Attackers constantly evolve their obfuscation techniques. We strictly advise against relying solely on QRShield's Fusion Score to authorize highly-sensitive operations.</p>
+
+        <h3>3. Acceptable Use</h3>
+        <p>You agree to use this platform responsibly and in compliance with all applicable cyber laws. You may not:</p>
+        <ul>
+          <li>Use the platform to design, test, or evade security mechanisms using malicious zero-day URLs.</li>
+          <li>Overload the API with denial-of-service volumetric scraping or scanning scripts.</li>
+          <li>Reverse-engineer the predictive Deep Learning model or mimic the SHAP Explainer vectors.</li>
+          <li>Submit explicitly unlawful or restricted imagery for processing.</li>
+        </ul>
+
+        <h3>4. Disclaimer of Warranties</h3>
+        <p>QRShield is provided on an "AS IS" and "AS AVAILABLE" basis without any warranties of any kind. Team Eagle and The Islamia University of Bahawalpur explicitly disclaim any warranties regarding the accuracy, completeness, or ongoing availability of the threat intelligence.</p>
+
+        <h3>5. Open Source and Licensing</h3>
+        <p>Core components of this dashboard, including the `jsQR` and `pyzbar` decoding layers, operate underneath standard open-source licenses. The proprietary Deep Learning matrices and Fusion Architecture developed for this FYP remain the intellectual property of Team Eagle.</p>
+
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+      <a href="/contact">Contact Team</a>
+    </div>
+    <div>&copy; 2026 QRShield Pro Threat Intelligence. Created by Team Eagle.</div>
+  </footer>
+</body>
+</html>

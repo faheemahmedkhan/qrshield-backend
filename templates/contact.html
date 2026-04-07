@@ -48,10 +48,33 @@
     .dept-title { color: #fff; font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
     .dept-subtitle { color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
 
-    .footer { border-top: 1px solid rgba(255,255,255,0.08); padding: 30px 20px; text-align: center; color: #ffffff; background: linear-gradient(180deg, transparent, rgba(255,255,255,0.06)); font-size: 0.85rem; font-weight: 500; margin-top: auto;}
-    .footer-links { display: flex; justify-content: center; gap: 25px; margin-bottom: 12px; }
-    .footer-links a { color: #ffffff; font-weight: 600; text-decoration: none; transition: color 0.2s; }
-    .footer-links a:hover { color: var(--accent2); }
+    .footer {
+      margin-top: 50px;
+      padding: 35px 20px;
+      text-align: center;
+      background: #ffffff;
+      color: #0c1422;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 12px;
+    }
+    .footer-links a {
+      color: #0c1422;
+      font-weight: 700;
+      text-decoration: none;
+      transition: color 0.2s, opacity 0.2s;
+    }
+    .footer-links a:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>

@@ -1364,7 +1364,7 @@
     .ticker-content {
       display: flex;
       gap: 30px;
-      animation: tickerScroll 80s linear infinite;
+      animation: tickerScroll 12s linear infinite;
     }
     .ticker-item {
       display: inline-flex;
@@ -1379,30 +1379,31 @@
     }
 
     .footer {
-      border-top: 1px solid rgba(255,255,255,0.08);
       margin-top: 50px;
-      padding: 30px 20px;
+      padding: 35px 20px;
       text-align: center;
-      color: #ffffff;
-      background: linear-gradient(180deg, transparent, rgba(255,255,255,0.06));
-      font-size: 0.85rem;
+      background: #ffffff;
+      color: #0c1422;
+      font-size: 0.9rem;
       font-weight: 500;
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
     }
     .footer-links {
       display: flex;
       justify-content: center;
-      gap: 25px;
+      gap: 30px;
       margin-bottom: 12px;
     }
     .footer-links a {
-      color: #ffffff;
-      font-weight: 600;
+      color: #0c1422;
+      font-weight: 700;
       text-decoration: none;
       transition: color 0.2s, opacity 0.2s;
-      cursor: pointer;
     }
     .footer-links a:hover {
-      color: var(--accent2);
+      color: var(--accent);
+      text-decoration: underline;
     }
     
     /* ── PDF Fix Mode ── */
@@ -1631,9 +1632,9 @@
     <!-- ─── Professional Footer ─── -->
     <footer class="footer">
       <div class="footer-links">
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Service</a>
-        <a href="#">Contact Team</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/contact">Contact Team</a>
       </div>
       <div>&copy; 2026 QRShield Pro Threat Intelligence. Built for Advanced Detection.</div>
     </footer>
@@ -1698,64 +1699,82 @@
           // Load image fully to process it
           const img = new Image();
           img.onload = () => {
-             // Scale down for JS processing to avoid memory crash
-             const maxDim = 1200;
-             let w = img.width;
-             let h = img.height;
-             if (w > maxDim || h > maxDim) {
-                const ratio = Math.min(maxDim / w, maxDim / h);
-                w = Math.round(w * ratio);
-                h = Math.round(h * ratio);
-             }
+             const origW = img.width;
+             const origH = img.height;
              
-             tmpCanvas.width = w;
-             tmpCanvas.height = h;
+             // Draw full-res to tmpCanvas for jsQR analysis
+             tmpCanvas.width = origW;
+             tmpCanvas.height = origH;
              const ctx = tmpCanvas.getContext('2d', { willReadFrequently: true });
-             ctx.drawImage(img, 0, 0, w, h);
+             ctx.drawImage(img, 0, 0, origW, origH);
              
-             // Run jsQR
+             // Run jsQR on original high-res for maximum accuracy
+             let cropped = false;
              if (typeof jsQR !== 'undefined') {
-                const imgData = ctx.getImageData(0, 0, w, h);
-                const code = jsQR(imgData.data, imgData.width, imgData.height);
+                const imgData = ctx.getImageData(0, 0, origW, origH);
+                const code = jsQR(imgData.data, origW, origH, { inversionAttempts: "attemptBoth" });
                 
                 if (code && code.location) {
-                   // Crop the bounds with margin
                    const loc = code.location;
                    const minX = Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x);
                    const maxX = Math.max(loc.topRightCorner.x, loc.bottomRightCorner.x);
                    const minY = Math.min(loc.topLeftCorner.y, loc.topRightCorner.y);
                    const maxY = Math.max(loc.bottomLeftCorner.y, loc.bottomRightCorner.y);
                    
-                   // The DL model requires an extremely tight crop without excessive background.
-                   // A ~4% margin provides just enough quiet zone for the CNN while stripping the background.
+                   // Very tight 4% margin
                    const margin = Math.floor(Math.max(maxX - minX, maxY - minY) * 0.04); 
-                   
                    let cropX = Math.max(0, minX - margin);
                    let cropY = Math.max(0, minY - margin);
-                   let cropW = Math.min(w - cropX, (maxX - minX) + (margin * 2));
-                   let cropH = Math.min(h - cropY, (maxY - minY) + (margin * 2));
+                   let cropW = Math.min(origW - cropX, (maxX - minX) + (margin * 2));
+                   let cropH = Math.min(origH - cropY, (maxY - minY) + (margin * 2));
+                   
+                   // Enforce max dimension of 800px
+                   let finalW = cropW;
+                   let finalH = cropH;
+                   if (finalW > 800 || finalH > 800) {
+                      const ratio = Math.min(800 / finalW, 800 / finalH);
+                      finalW = Math.round(finalW * ratio);
+                      finalH = Math.round(finalH * ratio);
+                   }
                    
                    const cropCanvas = document.createElement('canvas');
-                   cropCanvas.width = cropW;
-                   cropCanvas.height = cropH;
+                   cropCanvas.width = finalW;
+                   cropCanvas.height = finalH;
                    const cropCtx = cropCanvas.getContext('2d');
-                   cropCtx.drawImage(tmpCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+                   cropCtx.drawImage(tmpCanvas, cropX, cropY, cropW, cropH, 0, 0, finalW, finalH);
                    
-                   // Update preview with strictly the cropped image
+                   console.log(`[QR-CROP] Success. Sending ${finalW}x${finalH} blob.`);
                    previewImg.src = cropCanvas.toDataURL('image/jpeg', 0.95);
-                   
-                   cropCanvas.toBlob((blob) => {
-                      sendBlob(blob);
-                   }, 'image/jpeg', 0.95);
-                   return; // Stop here, cropped successfully
+                   cropCanvas.toBlob((blob) => { sendBlob(blob); }, 'image/jpeg', 0.95);
+                   cropped = true;
                 }
              }
              
-             // Fallback: If no QR found or jsQR fails, send the downscaled image
-             previewImg.src = tmpCanvas.toDataURL('image/jpeg', 0.85);
-             tmpCanvas.toBlob((blob) => {
-                sendBlob(blob);
-             }, 'image/jpeg', 0.85);
+             // Fallback: Smart Center Crop (65% center area) if jsQR fails
+             if (!cropped) {
+                console.warn("[QR-CROP] jsQR failed detection. Applying Smart Center Crop.");
+                const cropPercent = 0.65;
+                const cropW = Math.round(origW * cropPercent);
+                const cropH = Math.round(origH * cropPercent);
+                const cropX = Math.round((origW - cropW) / 2);
+                const cropY = Math.round((origH - cropH) / 2);
+                
+                let finalW = cropW;
+                let finalH = cropH;
+                if (finalW > 800 || finalH > 800) {
+                   const ratio = Math.min(800 / finalW, 800 / finalH);
+                   finalW = Math.round(finalW * ratio);
+                   finalH = Math.round(finalH * ratio);
+                }
+                
+                const fallbackCanvas = document.createElement('canvas');
+                fallbackCanvas.width = finalW;
+                fallbackCanvas.height = finalH;
+                fallbackCanvas.getContext('2d').drawImage(tmpCanvas, cropX, cropY, cropW, cropH, 0, 0, finalW, finalH);
+                
+                previewImg.src = fallbackCanvas.toDataURL('image/jpeg', 0.85);
+                fallbackCanvas.toBlob((blob) => { sendBlob(blob); }, 'image/jpeg', 0.85);
+             }
           };
           img.src = e.target.result;
         };
@@ -2080,7 +2099,7 @@
       }
       
       updateTicker();
-      setInterval(updateTicker, 10000);
+      setInterval(updateTicker, 5000);
 
       /* ── Short URL manual analyze ── */
       shortAnalyzeBtn.addEventListener('click', async () => {

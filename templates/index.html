@@ -85,7 +85,7 @@
         linear-gradient(180deg, #070c18 0%, #04080f 100%);
       pointer-events: none;
       z-index: 0;
-      animation: bgPulse 14s ease-in-out infinite alternate;
+      animation: none;
     }
 
     @keyframes bgPulse {
@@ -122,7 +122,10 @@
       z-index: 1;
       max-width: 1120px;
       margin: 0 auto;
-      padding: 24px 20px 72px;
+      padding: 24px 20px 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
     /* ─── Header ─── */
@@ -1349,6 +1352,11 @@
       to { transform: translateY(20px); opacity: 0; }
     }
 
+    .hidden {
+      display: none !important;
+      visibility: hidden;
+    }
+
     .live-ticker {
       background: rgba(255,255,255,0.02);
       border-top: 1px solid rgba(255,255,255,0.05);
@@ -1379,7 +1387,7 @@
     }
 
     .footer {
-      margin-top: 50px;
+      margin-top: auto;
       padding: 35px 20px;
       text-align: center;
       background: #ffffff;
@@ -1388,6 +1396,9 @@
       font-weight: 500;
       border-radius: 20px 20px 0 0;
       box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+      width: 100%;
+      position: relative;
+      z-index: 10;
     }
     .footer-links {
       display: flex;
@@ -1409,17 +1420,52 @@
     /* ── PDF Fix Mode ── */
     body.pdf-mode {
       background: #060a12 !important;
-      width: 800px !important;
+      width: 820px !important;
+      padding: 0 !important;
+      margin: 0 auto !important;
     }
-    body.pdf-mode #resultCard {
-      width: 800px !important;
+    /* Hide everything except the result cards in PDF mode */
+    body.pdf-mode header,
+    body.pdf-mode .live-ticker,
+    body.pdf-mode .hero,
+    body.pdf-mode .section-label,
+    body.pdf-mode #shortCard,
+    body.pdf-mode .controls,
+    body.pdf-mode .preview-row,
+    body.pdf-mode .footer,
+    body.pdf-mode .toast-container,
+    body.pdf-mode canvas,
+    body.pdf-mode #exportPdfBtn {
+      display: none !important;
+    }
+    body.pdf-mode .app-wrapper {
+      padding: 20px !important;
+      min-height: unset !important;
+    }
+    body.pdf-mode #resultCard,
+    body.pdf-mode #shapCard {
+      display: block !important;
+      width: 780px !important;
       max-width: none !important;
-      border: none !important;
+      border: 1px solid rgba(61,132,255,0.3) !important;
       box-shadow: none !important;
-      margin: 0 !important;
+      margin: 0 0 16px 0 !important;
+      background: rgba(12, 20, 36, 0.95) !important;
+      page-break-inside: avoid;
     }
-    body.pdf-mode .shap-chart, body.pdf-mode .shap-bar {
+    body.pdf-mode .score-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr 1fr !important;
+    }
+    /* Freeze all animations so charts render fully */
+    body.pdf-mode *,
+    body.pdf-mode *::before,
+    body.pdf-mode *::after {
+      animation: none !important;
       transition: none !important;
+    }
+    body.pdf-mode .shap-bar-fill {
+      animation: none !important;
     }
   </style>
 </head>
@@ -1687,99 +1733,92 @@
       let busy = false;
 
       // Handle Image Selection Logic (for both file uploads and camera shots)
-      function processSelectedFile(file) {
-        if (!file) return;
-
-        // Show local preview immediately as fallback or loading state
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          previewImg.style.display = 'block';
-          previewPlaceholder.style.display = 'none';
-          
-          // Load image fully to process it
-          const img = new Image();
-          img.onload = () => {
-             const origW = img.width;
-             const origH = img.height;
-             
-             // Draw full-res to tmpCanvas for jsQR analysis
-             tmpCanvas.width = origW;
-             tmpCanvas.height = origH;
-             const ctx = tmpCanvas.getContext('2d', { willReadFrequently: true });
-             ctx.drawImage(img, 0, 0, origW, origH);
-             
-             // Run jsQR on original high-res for maximum accuracy
-             let cropped = false;
-             if (typeof jsQR !== 'undefined') {
-                const imgData = ctx.getImageData(0, 0, origW, origH);
-                const code = jsQR(imgData.data, origW, origH, { inversionAttempts: "attemptBoth" });
-                
-                if (code && code.location) {
-                   const loc = code.location;
-                   const minX = Math.min(loc.topLeftCorner.x, loc.bottomLeftCorner.x);
-                   const maxX = Math.max(loc.topRightCorner.x, loc.bottomRightCorner.x);
-                   const minY = Math.min(loc.topLeftCorner.y, loc.topRightCorner.y);
-                   const maxY = Math.max(loc.bottomLeftCorner.y, loc.bottomRightCorner.y);
-                   
-                   // Very tight 4% margin
-                   const margin = Math.floor(Math.max(maxX - minX, maxY - minY) * 0.04); 
-                   let cropX = Math.max(0, minX - margin);
-                   let cropY = Math.max(0, minY - margin);
-                   let cropW = Math.min(origW - cropX, (maxX - minX) + (margin * 2));
-                   let cropH = Math.min(origH - cropY, (maxY - minY) + (margin * 2));
-                   
-                   // Enforce max dimension of 800px
-                   let finalW = cropW;
-                   let finalH = cropH;
-                   if (finalW > 800 || finalH > 800) {
-                      const ratio = Math.min(800 / finalW, 800 / finalH);
-                      finalW = Math.round(finalW * ratio);
-                      finalH = Math.round(finalH * ratio);
-                   }
-                   
-                   const cropCanvas = document.createElement('canvas');
-                   cropCanvas.width = finalW;
-                   cropCanvas.height = finalH;
-                   const cropCtx = cropCanvas.getContext('2d');
-                   cropCtx.drawImage(tmpCanvas, cropX, cropY, cropW, cropH, 0, 0, finalW, finalH);
-                   
-                   console.log(`[QR-CROP] Success. Sending ${finalW}x${finalH} blob.`);
-                   previewImg.src = cropCanvas.toDataURL('image/jpeg', 0.95);
-                   cropCanvas.toBlob((blob) => { sendBlob(blob); }, 'image/jpeg', 0.95);
-                   cropped = true;
-                }
-             }
-             
-             // Fallback: Smart Center Crop (65% center area) if jsQR fails
-             if (!cropped) {
-                console.warn("[QR-CROP] jsQR failed detection. Applying Smart Center Crop.");
-                const cropPercent = 0.65;
-                const cropW = Math.round(origW * cropPercent);
-                const cropH = Math.round(origH * cropPercent);
-                const cropX = Math.round((origW - cropW) / 2);
-                const cropY = Math.round((origH - cropH) / 2);
-                
-                let finalW = cropW;
-                let finalH = cropH;
-                if (finalW > 800 || finalH > 800) {
-                   const ratio = Math.min(800 / finalW, 800 / finalH);
-                   finalW = Math.round(finalW * ratio);
-                   finalH = Math.round(finalH * ratio);
-                }
-                
-                const fallbackCanvas = document.createElement('canvas');
-                fallbackCanvas.width = finalW;
-                fallbackCanvas.height = finalH;
-                fallbackCanvas.getContext('2d').drawImage(tmpCanvas, cropX, cropY, cropW, cropH, 0, 0, finalW, finalH);
-                
-                previewImg.src = fallbackCanvas.toDataURL('image/jpeg', 0.85);
-                fallbackCanvas.toBlob((blob) => { sendBlob(blob); }, 'image/jpeg', 0.85);
-             }
-          };
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
+             function processSelectedFile(file) {
+         if (!file) return;
+ 
+         const reader = new FileReader();
+         reader.onload = (readerEvt) => {
+           previewImg.style.display = "block";
+           previewPlaceholder.style.display = "none";
+           
+           const procImg = new Image();
+           procImg.onload = () => {
+              const origW = procImg.width;
+              const origH = procImg.height;
+              let code = null;
+              
+              const analysisCanvas = document.createElement("canvas");
+              const aniCtx = analysisCanvas.getContext("2d", { willReadFrequently: true });
+              
+              // Multi-Pass: try high, medium, low scale for best QR detection
+              const passes = [
+                 { scale: 1.0, desc: "High" },
+                 { scale: 0.7, desc: "Med" },
+                 { scale: 0.45, desc: "Low" }
+              ];
+              
+              for (const pass of passes) {
+                 if (code) break;
+                 const sw = Math.round(origW * pass.scale);
+                 const sh = Math.round(origH * pass.scale);
+                 analysisCanvas.width = sw;
+                 analysisCanvas.height = sh;
+                 aniCtx.drawImage(procImg, 0, 0, sw, sh);
+                 const imgData = aniCtx.getImageData(0, 0, sw, sh);
+                 code = jsQR(imgData.data, sw, sh, { inversionAttempts: "attemptBoth" });
+              }
+              
+              if (code && code.location) {
+                 const loc = code.location;
+                 const lastScale = analysisCanvas.width / origW;
+                 // Use ALL 4 corners for a tight bounding box
+                 const xs = [loc.topLeftCorner.x, loc.topRightCorner.x, loc.bottomLeftCorner.x, loc.bottomRightCorner.x];
+                 const ys = [loc.topLeftCorner.y, loc.topRightCorner.y, loc.bottomLeftCorner.y, loc.bottomRightCorner.y];
+                 const minX = Math.min(...xs) / lastScale;
+                 const maxX = Math.max(...xs) / lastScale;
+                 const minY = Math.min(...ys) / lastScale;
+                 const maxY = Math.max(...ys) / lastScale;
+                 
+                 const margin = Math.floor(Math.max(maxX - minX, maxY - minY) * 0.05);
+                 let cropX = Math.max(0, minX - margin);
+                 let cropY = Math.max(0, minY - margin);
+                 let cropW = Math.min(origW - cropX, (maxX - minX) + margin * 2);
+                 let cropH = Math.min(origH - cropY, (maxY - minY) + margin * 2);
+ 
+                 let finalW = cropW, finalH = cropH;
+                 if (finalW > 800 || finalH > 800) {
+                    const r = Math.min(800 / finalW, 800 / finalH);
+                    finalW = Math.round(finalW * r);
+                    finalH = Math.round(finalH * r);
+                 }
+ 
+                 const cropCanvas = document.createElement("canvas");
+                 cropCanvas.width = finalW;
+                 cropCanvas.height = finalH;
+                 cropCanvas.getContext("2d").drawImage(procImg, cropX, cropY, cropW, cropH, 0, 0, finalW, finalH);
+                 console.log("[SCANNER] QR crop: " + finalW + "x" + finalH);
+                 previewImg.src = cropCanvas.toDataURL("image/jpeg", 0.95);
+                 cropCanvas.toBlob((b) => { sendBlob(b); }, "image/jpeg", 0.95);
+              } else {
+                 // Smart center-crop fallback
+                 console.warn("[SCANNER] No QR detected, using center crop fallback.");
+                 const cp = 0.65;
+                 const cw = Math.round(origW * cp);
+                 const ch = Math.round(origH * cp);
+                 const cx = Math.round((origW - cw) / 2);
+                 const cy = Math.round((origH - ch) / 2);
+                 let fw = 800, fh = Math.round(ch * (800 / cw));
+                 const fbCanvas = document.createElement("canvas");
+                 fbCanvas.width = fw; fbCanvas.height = fh;
+                 fbCanvas.getContext("2d").drawImage(procImg, cx, cy, cw, ch, 0, 0, fw, fh);
+                 previewImg.src = fbCanvas.toDataURL("image/jpeg", 0.85);
+                 fbCanvas.toBlob((b) => { sendBlob(b); }, "image/jpeg", 0.85);
+              }
+           };
+           procImg.src = readerEvt.target.result;
+         };
+         reader.readAsDataURL(file);
+       }
 
       fileInput.addEventListener('change', () => {
         const file = fileInput.files[0];
@@ -2050,26 +2089,39 @@
       const exportPdfBtn = document.getElementById('exportPdfBtn');
       if (exportPdfBtn) {
         exportPdfBtn.addEventListener('click', () => {
-          const el = document.getElementById('resultCard');
+          // Target the wrapper so both resultCard and shapCard are captured
+          const el = document.querySelector('.app-wrapper');
+          if (!el) { showToast('Nothing to export yet.', 'error'); return; }
           
-          // Force layout into a strict absolute width explicitly for pdf rendering
           document.body.classList.add('pdf-mode');
           exportPdfBtn.style.display = 'none';
           
+          // 800ms delay — ensures SHAP bars finish drawing and DOM reflows
           setTimeout(() => {
             const opt = {
-              margin: 0.5,
-              filename: 'QRShield_Threat_Report.pdf',
+              margin: [0.25, 0.3],
+              filename: 'QRShield_Intelligence_Report.pdf',
               image: { type: 'jpeg', quality: 0.98 },
-              html2canvas: { scale: 2, useCORS: true, backgroundColor: '#060a12' },
+              html2canvas: { 
+                scale: 2, 
+                useCORS: true, 
+                backgroundColor: '#060a12',
+                logging: false,
+                letterRendering: true,
+                windowWidth: 820
+              },
               jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
             };
             html2pdf().set(opt).from(el).save().then(() => {
               document.body.classList.remove('pdf-mode');
               exportPdfBtn.style.display = 'block';
-              showToast('PDF Report generated successfully!', 'success');
+              showToast('Intelligence Report exported!', 'success');
+            }).catch(() => {
+              document.body.classList.remove('pdf-mode');
+              exportPdfBtn.style.display = 'block';
+              showToast('PDF export failed, please retry.', 'error');
             });
-          }, 300); // 300ms delay to guarantee browser repaints DOM before snapshot
+          }, 800);
         });
       }
 

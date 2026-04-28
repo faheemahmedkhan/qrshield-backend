@@ -1733,143 +1733,170 @@
       let busy = false;
 
       // Handle Image Selection Logic (for both file uploads and camera shots)
-                           function processSelectedFile(file) {
+                                  function processSelectedFile(file) {
          if (!file) return;
- 
          const reader = new FileReader();
          reader.onload = (readerEvt) => {
            previewImg.style.display = "block";
            previewPlaceholder.style.display = "none";
- 
            const procImg = new Image();
            procImg.onload = () => {
               const origW = procImg.width;
               const origH = procImg.height;
               let code = null;
               let detectedScale = 1.0;
- 
-              // ── Grayscale + adaptive contrast enhancement ──────────────
-              function toGrayscale(imageData) {
-                const d = imageData.data;
+
+              // ── Grayscale + contrast stretch ─────────────────────
+              function toGrayscale(data) {
                 let minG = 255, maxG = 0;
-                // Pass 1: convert to grayscale and find min/max
-                for (let i = 0; i < d.length; i += 4) {
-                  const g = Math.round(0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
-                  d[i] = d[i+1] = d[i+2] = g;
+                for (let i = 0; i < data.length; i += 4) {
+                  const g = Math.round(0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2]);
+                  data[i] = data[i+1] = data[i+2] = g;
                   if (g < minG) minG = g;
                   if (g > maxG) maxG = g;
                 }
-                // Pass 2: stretch contrast to full 0-255 range
                 const range = maxG - minG || 1;
-                for (let i = 0; i < d.length; i += 4) {
-                  const stretched = Math.round((d[i] - minG) / range * 255);
-                  d[i] = d[i+1] = d[i+2] = stretched;
+                for (let i = 0; i < data.length; i += 4) {
+                  const s = Math.round((data[i] - minG) / range * 255);
+                  data[i] = data[i+1] = data[i+2] = s;
                 }
               }
- 
+
+              // ── Otsu binarization (critical for adversarial QRs) ──
+              function otsuBinarize(data) {
+                const hist = new Array(256).fill(0);
+                const total = data.length / 4;
+                for (let i = 0; i < data.length; i += 4) hist[data[i]]++;
+                let sum = 0;
+                for (let t = 0; t < 256; t++) sum += t * hist[t];
+                let sumB = 0, wB = 0, maxVar = 0, thresh = 128;
+                for (let t = 0; t < 256; t++) {
+                  wB += hist[t];
+                  if (!wB) continue;
+                  const wF = total - wB;
+                  if (!wF) break;
+                  sumB += t * hist[t];
+                  const mB = sumB / wB;
+                  const mF = (sum - sumB) / wF;
+                  const v = wB * wF * (mB - mF) ** 2;
+                  if (v > maxVar) { maxVar = v; thresh = t; }
+                }
+                for (let i = 0; i < data.length; i += 4) {
+                  const b = data[i] <= thresh ? 0 : 255;
+                  data[i] = data[i+1] = data[i+2] = b;
+                }
+              }
+
+              // ── Unsharp mask to enhance QR finder patterns ────────
+              function sharpenData(imgData, w, h) {
+                const src = new Uint8ClampedArray(imgData.data);
+                const dst = imgData.data;
+                const K = [0,-1,0,-1,5,-1,0,-1,0];
+                for (let y = 1; y < h-1; y++) {
+                  for (let x = 1; x < w-1; x++) {
+                    for (let c = 0; c < 3; c++) {
+                      let v = 0;
+                      for (let ky = -1; ky <= 1; ky++)
+                        for (let kx = -1; kx <= 1; kx++)
+                          v += src[((y+ky)*w+(x+kx))*4+c] * K[(ky+1)*3+(kx+1)];
+                      dst[(y*w+x)*4+c] = Math.max(0, Math.min(255, v));
+                    }
+                  }
+                }
+              }
+
+              function invertData(data) {
+                for (let i = 0; i < data.length; i += 4) {
+                  data[i] = 255-data[i]; data[i+1] = 255-data[i+1]; data[i+2] = 255-data[i+2];
+                }
+              }
+
               const analysisCanvas = document.createElement("canvas");
               const aniCtx = analysisCanvas.getContext("2d", { willReadFrequently: true });
- 
-              const passes = [{ scale: 1.0 }, { scale: 0.7 }, { scale: 0.45 }];
- 
-              for (const pass of passes) {
-                 if (code) break;
-                 const sw = Math.round(origW * pass.scale);
-                 const sh = Math.round(origH * pass.scale);
-                 analysisCanvas.width = sw;
-                 analysisCanvas.height = sh;
-                 aniCtx.drawImage(procImg, 0, 0, sw, sh);
- 
-                 // Try color first
-                 let imgData = aniCtx.getImageData(0, 0, sw, sh);
-                 code = jsQR(imgData.data, sw, sh, { inversionAttempts: "attemptBoth" });
- 
-                 // Then try grayscale (better for low-contrast camera shots)
-                 if (!code) {
-                   toGrayscale(imgData);
-                   code = jsQR(imgData.data, sw, sh, { inversionAttempts: "attemptBoth" });
-                 }
- 
-                 if (code) detectedScale = pass.scale;
+              const scales = [1.0, 0.7, 0.45];
+
+              // 5-pipeline × 3-scale = up to 15 attempts
+              outer: for (const scale of scales) {
+                const sw = Math.round(origW * scale);
+                const sh = Math.round(origH * scale);
+                analysisCanvas.width = sw;
+                analysisCanvas.height = sh;
+                aniCtx.drawImage(procImg, 0, 0, sw, sh);
+
+                // Pipeline 1: Color original
+                let d1 = aniCtx.getImageData(0, 0, sw, sh);
+                code = jsQR(d1.data, sw, sh, { inversionAttempts: "attemptBoth" });
+                if (code) { detectedScale = scale; break outer; }
+
+                // Pipeline 2: Grayscale + contrast stretch
+                let d2 = aniCtx.getImageData(0, 0, sw, sh);
+                toGrayscale(d2.data);
+                code = jsQR(d2.data, sw, sh, { inversionAttempts: "attemptBoth" });
+                if (code) { detectedScale = scale; break outer; }
+
+                // Pipeline 3: Sharpen → grayscale (recover blurred finder patterns)
+                let d3 = aniCtx.getImageData(0, 0, sw, sh);
+                sharpenData(d3, sw, sh);
+                toGrayscale(d3.data);
+                code = jsQR(d3.data, sw, sh, { inversionAttempts: "attemptBoth" });
+                if (code) { detectedScale = scale; break outer; }
+
+                // Pipeline 4: Otsu binary (adversarial noise/overlay removal)
+                let d4 = aniCtx.getImageData(0, 0, sw, sh);
+                toGrayscale(d4.data);
+                otsuBinarize(d4.data);
+                code = jsQR(d4.data, sw, sh, { inversionAttempts: "attemptBoth" });
+                if (code) { detectedScale = scale; break outer; }
+
+                // Pipeline 5: Inverted Otsu (handles dark-background adversarial QRs)
+                let d5 = aniCtx.getImageData(0, 0, sw, sh);
+                toGrayscale(d5.data);
+                otsuBinarize(d5.data);
+                invertData(d5.data);
+                code = jsQR(d5.data, sw, sh, { inversionAttempts: "attemptBoth" });
+                if (code) { detectedScale = scale; break outer; }
               }
- 
+
               if (code && code.location) {
                  const loc = code.location;
- 
-                 // Map all 4 corner coords back to full-resolution space
-                 const xs = [
-                   loc.topLeftCorner.x, loc.topRightCorner.x,
-                   loc.bottomLeftCorner.x, loc.bottomRightCorner.x
-                 ].map(v => v / detectedScale);
-                 const ys = [
-                   loc.topLeftCorner.y, loc.topRightCorner.y,
-                   loc.bottomLeftCorner.y, loc.bottomRightCorner.y
-                 ].map(v => v / detectedScale);
- 
-                 const rawMinX = Math.min(...xs);
-                 const rawMaxX = Math.max(...xs);
-                 const rawMinY = Math.min(...ys);
-                 const rawMaxY = Math.max(...ys);
- 
-                 // Very tight 2% margin — just enough to not clip finder patterns
-                 const qrW = rawMaxX - rawMinX;
-                 const qrH = rawMaxY - rawMinY;
+                 const xs = [loc.topLeftCorner.x, loc.topRightCorner.x, loc.bottomLeftCorner.x, loc.bottomRightCorner.x].map(v => v / detectedScale);
+                 const ys = [loc.topLeftCorner.y, loc.topRightCorner.y, loc.bottomLeftCorner.y, loc.bottomRightCorner.y].map(v => v / detectedScale);
+                 const rawMinX = Math.min(...xs), rawMaxX = Math.max(...xs);
+                 const rawMinY = Math.min(...ys), rawMaxY = Math.max(...ys);
+                 const qrW = rawMaxX - rawMinX, qrH = rawMaxY - rawMinY;
                  const margin = Math.floor(Math.max(qrW, qrH) * 0.02);
- 
                  let cropX = Math.max(0, rawMinX - margin);
                  let cropY = Math.max(0, rawMinY - margin);
                  let cropW = Math.min(origW - cropX, qrW + margin * 2);
                  let cropH = Math.min(origH - cropY, qrH + margin * 2);
- 
-                 // QR codes are square — expand the shorter side symmetrically
-                 if (cropW > cropH) {
-                   const diff = cropW - cropH;
-                   cropY = Math.max(0, cropY - diff / 2);
-                   cropH = Math.min(origH - cropY, cropW);
-                 } else if (cropH > cropW) {
-                   const diff = cropH - cropW;
-                   cropX = Math.max(0, cropX - diff / 2);
-                   cropW = Math.min(origW - cropX, cropH);
-                 }
- 
-                 // Output at 512×512 — ideal for ML models
+                 // Force square symmetrically
+                 if (cropW > cropH) { const d = cropW-cropH; cropY = Math.max(0, cropY-d/2); cropH = Math.min(origH-cropY, cropW); }
+                 else if (cropH > cropW) { const d = cropH-cropW; cropX = Math.max(0, cropX-d/2); cropW = Math.min(origW-cropX, cropH); }
+
                  const OUT = 512;
                  const cropCanvas = document.createElement("canvas");
-                 cropCanvas.width = OUT;
-                 cropCanvas.height = OUT;
+                 cropCanvas.width = OUT; cropCanvas.height = OUT;
                  const cropCtx = cropCanvas.getContext("2d");
                  cropCtx.drawImage(procImg, cropX, cropY, cropW, cropH, 0, 0, OUT, OUT);
- 
-                 // Grayscale + contrast stretch
                  const cropData = cropCtx.getImageData(0, 0, OUT, OUT);
-                 toGrayscale(cropData);
+                 toGrayscale(cropData.data);
                  cropCtx.putImageData(cropData, 0, 0);
- 
-                 // Update preview to show exactly what is sent to the server
-                 const dataUrl = cropCanvas.toDataURL("image/jpeg", 0.95);
-                 previewImg.src = dataUrl;
- 
-                 console.log("[SCANNER] Tight crop: " + Math.round(cropW) + "x" + Math.round(cropH) + " → 512x512 grayscale. Scale=" + detectedScale);
+                 previewImg.src = cropCanvas.toDataURL("image/jpeg", 0.95);
+                 console.log("[SCANNER] Detected scale=" + detectedScale + " crop=" + Math.round(cropW) + "x" + Math.round(cropH));
                  cropCanvas.toBlob((b) => { sendBlob(b); }, "image/jpeg", 0.95);
- 
               } else {
-                 // Fallback: grayscale center-crop, no background guessing
-                 console.warn("[SCANNER] jsQR failed — grayscale center crop fallback.");
-                 const cp = 0.6;
-                 const cw = Math.round(origW * cp);
-                 const ch = Math.round(origH * cp);
-                 const cx = Math.round((origW - cw) / 2);
-                 const cy = Math.round((origH - ch) / 2);
-                 const sqSide = Math.min(cw, ch);
+                 console.warn("[SCANNER] All 15 pipelines failed — center crop fallback.");
+                 const cw = Math.round(origW * 0.6), ch = Math.round(origH * 0.6);
+                 const cx = Math.round((origW-cw)/2), cy = Math.round((origH-ch)/2);
+                 const sq = Math.min(cw, ch);
                  const fbCanvas = document.createElement("canvas");
                  fbCanvas.width = 512; fbCanvas.height = 512;
                  const fbCtx = fbCanvas.getContext("2d");
-                 fbCtx.drawImage(procImg, cx, cy, sqSide, sqSide, 0, 0, 512, 512);
+                 fbCtx.drawImage(procImg, cx, cy, sq, sq, 0, 0, 512, 512);
                  const fbData = fbCtx.getImageData(0, 0, 512, 512);
-                 toGrayscale(fbData);
+                 toGrayscale(fbData.data);
                  fbCtx.putImageData(fbData, 0, 0);
-                 const fbUrl = fbCanvas.toDataURL("image/jpeg", 0.85);
-                 previewImg.src = fbUrl;
+                 previewImg.src = fbCanvas.toDataURL("image/jpeg", 0.85);
                  fbCanvas.toBlob((b) => { sendBlob(b); }, "image/jpeg", 0.85);
               }
            };

@@ -1733,30 +1733,40 @@
       let busy = false;
 
       // Handle Image Selection Logic (for both file uploads and camera shots)
-             function processSelectedFile(file) {
+                    function processSelectedFile(file) {
          if (!file) return;
  
          const reader = new FileReader();
          reader.onload = (readerEvt) => {
            previewImg.style.display = "block";
            previewPlaceholder.style.display = "none";
-           
+ 
            const procImg = new Image();
            procImg.onload = () => {
               const origW = procImg.width;
               const origH = procImg.height;
               let code = null;
-              
+              let detectedScale = 1.0; // Track the actual scale that found the QR
+ 
+              // Helper: convert ImageData to grayscale in-place
+              function toGrayscaleData(imageData) {
+                const d = imageData.data;
+                for (let i = 0; i < d.length; i += 4) {
+                  const g = Math.round(0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2]);
+                  d[i] = d[i+1] = d[i+2] = g;
+                }
+              }
+ 
               const analysisCanvas = document.createElement("canvas");
               const aniCtx = analysisCanvas.getContext("2d", { willReadFrequently: true });
-              
-              // Multi-Pass: try high, medium, low scale for best QR detection
+ 
+              // Multi-Pass: try at 3 scales, and at each scale try color then grayscale
               const passes = [
-                 { scale: 1.0, desc: "High" },
-                 { scale: 0.7, desc: "Med" },
-                 { scale: 0.45, desc: "Low" }
+                 { scale: 1.0 },
+                 { scale: 0.7 },
+                 { scale: 0.45 }
               ];
-              
+ 
               for (const pass of passes) {
                  if (code) break;
                  const sw = Math.round(origW * pass.scale);
@@ -1764,53 +1774,82 @@
                  analysisCanvas.width = sw;
                  analysisCanvas.height = sh;
                  aniCtx.drawImage(procImg, 0, 0, sw, sh);
-                 const imgData = aniCtx.getImageData(0, 0, sw, sh);
+ 
+                 // Attempt 1: color image
+                 let imgData = aniCtx.getImageData(0, 0, sw, sh);
                  code = jsQR(imgData.data, sw, sh, { inversionAttempts: "attemptBoth" });
+ 
+                 // Attempt 2: grayscale (helps with camera noise & low contrast)
+                 if (!code) {
+                   toGrayscaleData(imgData);
+                   code = jsQR(imgData.data, sw, sh, { inversionAttempts: "attemptBoth" });
+                 }
+ 
+                 if (code) detectedScale = pass.scale; // Save the scale that worked
               }
-              
+ 
               if (code && code.location) {
                  const loc = code.location;
-                 const lastScale = analysisCanvas.width / origW;
-                 // Use ALL 4 corners for a tight bounding box
+                 // Convert coordinates back to original image space using detectedScale
                  const xs = [loc.topLeftCorner.x, loc.topRightCorner.x, loc.bottomLeftCorner.x, loc.bottomRightCorner.x];
                  const ys = [loc.topLeftCorner.y, loc.topRightCorner.y, loc.bottomLeftCorner.y, loc.bottomRightCorner.y];
-                 const minX = Math.min(...xs) / lastScale;
-                 const maxX = Math.max(...xs) / lastScale;
-                 const minY = Math.min(...ys) / lastScale;
-                 const maxY = Math.max(...ys) / lastScale;
-                 
-                 const margin = Math.floor(Math.max(maxX - minX, maxY - minY) * 0.05);
+                 const minX = Math.min(...xs) / detectedScale;
+                 const maxX = Math.max(...xs) / detectedScale;
+                 const minY = Math.min(...ys) / detectedScale;
+                 const maxY = Math.max(...ys) / detectedScale;
+ 
+                 // 8% margin around QR code for safe crop
+                 const margin = Math.floor(Math.max(maxX - minX, maxY - minY) * 0.08);
                  let cropX = Math.max(0, minX - margin);
                  let cropY = Math.max(0, minY - margin);
                  let cropW = Math.min(origW - cropX, (maxX - minX) + margin * 2);
                  let cropH = Math.min(origH - cropY, (maxY - minY) + margin * 2);
  
-                 let finalW = cropW, finalH = cropH;
-                 if (finalW > 800 || finalH > 800) {
-                    const r = Math.min(800 / finalW, 800 / finalH);
-                    finalW = Math.round(finalW * r);
-                    finalH = Math.round(finalH * r);
-                 }
+                 // Force square crop (QR codes are square)
+                 const sqSize = Math.max(cropW, cropH);
+                 cropX = Math.max(0, cropX - (sqSize - cropW) / 2);
+                 cropY = Math.max(0, cropY - (sqSize - cropH) / 2);
+                 cropW = Math.min(origW - cropX, sqSize);
+                 cropH = Math.min(origH - cropY, sqSize);
+ 
+                 // Cap output at 640px
+                 const finalSize = Math.min(Math.round(Math.max(cropW, cropH)), 640);
  
                  const cropCanvas = document.createElement("canvas");
-                 cropCanvas.width = finalW;
-                 cropCanvas.height = finalH;
-                 cropCanvas.getContext("2d").drawImage(procImg, cropX, cropY, cropW, cropH, 0, 0, finalW, finalH);
-                 console.log("[SCANNER] QR crop: " + finalW + "x" + finalH);
+                 cropCanvas.width = finalSize;
+                 cropCanvas.height = finalSize;
+                 const cropCtx = cropCanvas.getContext("2d");
+                 cropCtx.drawImage(procImg, cropX, cropY, cropW, cropH, 0, 0, finalSize, finalSize);
+ 
+                 // Convert cropped QR to grayscale (reduces noise, improves ML accuracy)
+                 const cropData = cropCtx.getImageData(0, 0, finalSize, finalSize);
+                 toGrayscaleData(cropData);
+                 cropCtx.putImageData(cropData, 0, 0);
+ 
+                 console.log("[SCANNER] QR detected & cropped: " + finalSize + "x" + finalSize + " @ scale " + detectedScale);
                  previewImg.src = cropCanvas.toDataURL("image/jpeg", 0.95);
                  cropCanvas.toBlob((b) => { sendBlob(b); }, "image/jpeg", 0.95);
+ 
               } else {
-                 // Smart center-crop fallback
-                 console.warn("[SCANNER] No QR detected, using center crop fallback.");
+                 // Fallback: grayscale center-crop
+                 console.warn("[SCANNER] No QR detected — using grayscale center crop.");
                  const cp = 0.65;
                  const cw = Math.round(origW * cp);
                  const ch = Math.round(origH * cp);
                  const cx = Math.round((origW - cw) / 2);
                  const cy = Math.round((origH - ch) / 2);
-                 let fw = 800, fh = Math.round(ch * (800 / cw));
+                 const sqSide = Math.min(cw, ch, 640);
                  const fbCanvas = document.createElement("canvas");
-                 fbCanvas.width = fw; fbCanvas.height = fh;
-                 fbCanvas.getContext("2d").drawImage(procImg, cx, cy, cw, ch, 0, 0, fw, fh);
+                 fbCanvas.width = sqSide;
+                 fbCanvas.height = sqSide;
+                 const fbCtx = fbCanvas.getContext("2d");
+                 fbCtx.drawImage(procImg, cx, cy, cw, ch, 0, 0, sqSide, sqSide);
+ 
+                 // Convert to grayscale
+                 const fbData = fbCtx.getImageData(0, 0, sqSide, sqSide);
+                 toGrayscaleData(fbData);
+                 fbCtx.putImageData(fbData, 0, 0);
+ 
                  previewImg.src = fbCanvas.toDataURL("image/jpeg", 0.85);
                  fbCanvas.toBlob((b) => { sendBlob(b); }, "image/jpeg", 0.85);
               }

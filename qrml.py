@@ -217,6 +217,56 @@ def get_shap_explanation(df_row):
 # PREDICTION  — returns (prediction, prob, shap_explanation)
 # ======================================
 
+# ======================================
+# GLOBALLY TRUSTED DOMAINS
+# URLs from these domains are capped at max 0.30 probability
+# regardless of ML output — they are universally recognised
+# platforms where even complex URL structures are normal.
+# ======================================
+
+TRUSTED_DOMAINS = {
+    # Video / Social
+    "youtube.com", "youtu.be", "vimeo.com",
+    "facebook.com", "fb.com", "instagram.com",
+    "twitter.com", "x.com", "linkedin.com",
+    "tiktok.com", "reddit.com", "pinterest.com",
+    # Productivity / Work
+    "upwork.com", "fiverr.com", "freelancer.com",
+    "slack.com", "trello.com", "notion.so",
+    "zoom.us", "meet.google.com", "teams.microsoft.com",
+    # Tech / Dev
+    "github.com", "gitlab.com", "stackoverflow.com",
+    "npmjs.com", "pypi.org", "docs.python.org",
+    # Search / Cloud
+    "google.com", "bing.com", "duckduckgo.com",
+    "drive.google.com", "docs.google.com",
+    "dropbox.com", "onedrive.live.com",
+    # E-commerce / Finance
+    "amazon.com", "ebay.com", "etsy.com",
+    "paypal.com", "stripe.com", "shopify.com",
+    # Education / Research
+    "wikipedia.org", "scholar.google.com",
+    "researchgate.net", "academia.edu",
+    "coursera.org", "udemy.com", "edx.org",
+    # News
+    "bbc.com", "cnn.com", "reuters.com",
+    "theguardian.com", "nytimes.com",
+    # Microsoft / Apple / Major Tech
+    "microsoft.com", "apple.com", "support.apple.com",
+    "office.com", "live.com", "outlook.com",
+    # Email
+    "gmail.com", "mail.google.com", "proton.me",
+}
+
+def _get_registered_domain(url: str) -> str:
+    """Return 'domain.tld' (registered domain) from a URL."""
+    try:
+        ext = tldextract.extract(url)
+        return f"{ext.domain}.{ext.suffix}".lower()
+    except Exception:
+        return ""
+
+
 def predict_url(url):
     """
     Analyse a URL and return:
@@ -228,15 +278,55 @@ def predict_url(url):
     df       = pd.DataFrame([features])
     df       = df.reindex(columns=feature_columns, fill_value=0)
 
-    prob = model.predict_proba(df)[0][1]
+    prob = float(model.predict_proba(df)[0][1])
 
-    # Compensation rules
-    if features.get("whois_available", 0) == 0:
-        prob = max(0.0, prob - 0.05)
-    if features.get("domain_age_days", 0) > 365 and features.get("suspicious_words", 0) == 0:
-        prob = max(0.0, prob - 0.03)
-    if features.get("domain_age_days", 0) < 30 and features.get("suspicious_words", 0) == 1:
-        prob = min(1.0, prob + 0.08)
+    # ── Layer 1: Trusted global domain cap ────────────────────────────
+    # Globally recognised platforms are capped at 0.28 (never "Malicious")
+    # even when their URLs look complex (e.g. YouTube query strings, Upwork paths).
+    reg_domain = _get_registered_domain(url)
+    if reg_domain in TRUSTED_DOMAINS:
+        prob = min(prob, 0.28)
+
+    else:
+        # ── Layer 2: Smart multi-condition false-positive compensation ──
+        # ALL 6 conditions must be true together — one failure disables the reduction.
+        # This means exotic TLD / new domain / suspicious word alone blocks compensation.
+        try:
+            tld = tldextract.extract(url).suffix.lower()
+        except Exception:
+            tld = ""
+
+        SAFE_TLDS = {"com", "org", "edu", "net", "gov", "io",
+                     "co", "ac", "uk", "ca", "au", "de", "fr"}
+
+        all_safe = (
+            features.get("domain_age_days", 0)      > 730  and  # > 2 years old
+            features.get("uses_https", 0)           == 1   and  # HTTPS
+            features.get("suspicious_words", 0)     == 0   and  # no sus words
+            features.get("dns_resolves", 0)         == 1   and  # DNS resolves
+            features.get("checking_ip_address", 0)  == 0   and  # not raw IP
+            tld in SAFE_TLDS                                     # standard TLD
+        )
+        if all_safe:
+            prob = max(0.0, prob - 0.12)
+
+        # ── Layer 3: Boost for genuinely malicious combinations ────────
+        # Ensures truly dangerous URLs are not accidentally reduced.
+        exotic_tld   = tld not in SAFE_TLDS and len(tld) >= 4
+        new_domain   = features.get("domain_age_days", 0) < 30
+        has_sus      = features.get("suspicious_words", 0) == 1
+        many_dashes  = features.get("count_dash", 0) >= 3
+        long_url     = features.get("url_length", 0) > 75
+        random_path  = features.get("fd_length", 0) > 20
+
+        malicious_signals = sum([exotic_tld, new_domain, has_sus,
+                                 many_dashes, (long_url and has_sus), random_path])
+        if malicious_signals >= 2:
+            prob = min(1.0, prob + 0.08 * (malicious_signals - 1))
+
+        # ── Legacy rule (kept) ─────────────────────────────────────────
+        if new_domain and has_sus:
+            prob = min(1.0, prob + 0.08)
 
     prediction       = 1 if prob >= 0.70 else 0
     shap_explanation = get_shap_explanation(df)

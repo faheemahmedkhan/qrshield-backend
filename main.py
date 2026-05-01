@@ -184,7 +184,7 @@ def adaptive_fusion(ml_prob, dl_prob):
     return (w_ml * ml_prob) + (w_dl * dl_prob), mode
 
 def risk_decision(score):
-    if score < 0.25:  return "SAFE"
+    if score < 0.30:  return "SAFE"        # raised from 0.25 → trusted domain cap is 0.28
     if score < 0.60:  return "SUSPICIOUS"
     return "MALICIOUS"
 

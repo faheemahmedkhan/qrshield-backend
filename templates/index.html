@@ -1649,7 +1649,6 @@
       const nativeCameraInput = document.getElementById('nativeCameraInput');
       const fileLabel = document.getElementById('fileLabel');
       const uploadBtn = document.getElementById('uploadBtn');
-      // (camera viewfinder — defined above near toggleCamBtn)
       const toggleCamBtn = document.getElementById('toggleCamBtn');
       
       const previewImg = document.getElementById('preview');
@@ -1881,91 +1880,9 @@
         }
       });
 
-      // ── Live Camera Viewfinder ────────────────────────────────────────
-      let camStream = null, camScanTimer = null, camDetected = false, camCapturing = false;
-      const cameraModal = document.getElementById('cameraModal');
-      const camVideo    = document.getElementById('camVideo');
-      const camOverlay  = document.getElementById('camOverlay');
-      const camHint     = document.getElementById('camHint');
-      const closeCamBtn = document.getElementById('closeCamBtn');
-
-      function drawFrame(ctx, w, h, detected) {
-        ctx.clearRect(0, 0, w, h);
-        const pad = w * 0.10, size = w - pad * 2, arm = size * 0.18;
-        ctx.fillStyle = 'rgba(0,0,0,0.48)'; ctx.fillRect(0, 0, w, h); ctx.clearRect(pad, pad, size, size);
-        if (detected) { ctx.fillStyle = 'rgba(0,255,136,0.15)'; ctx.fillRect(pad, pad, size, size); }
-        ctx.strokeStyle = detected ? '#00ff88' : '#ffffff'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-        [[pad,pad,1,1],[pad+size,pad,-1,1],[pad,pad+size,1,-1],[pad+size,pad+size,-1,-1]].forEach(([x,y,dx,dy]) => {
-          ctx.beginPath(); ctx.moveTo(x+dx*arm, y); ctx.lineTo(x,y); ctx.lineTo(x, y+dy*arm); ctx.stroke();
-        });
-        if (!detected) {
-          const scanY = pad + size * ((Date.now() % 2000) / 2000);
-          const g = ctx.createLinearGradient(pad, scanY-8, pad, scanY+8);
-          g.addColorStop(0,'transparent'); g.addColorStop(0.5,'rgba(61,132,255,0.7)'); g.addColorStop(1,'transparent');
-          ctx.fillStyle = g; ctx.fillRect(pad, scanY-8, size, 16);
-        }
-      }
-
-      function stopCamera() {
-        if (camScanTimer) { clearInterval(camScanTimer); camScanTimer = null; }
-        if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
-        if (cameraModal) cameraModal.classList.remove('open');
-        camDetected = false; camCapturing = false;
-        if (camHint) { camHint.textContent = '📷 Point camera at a QR code'; camHint.classList.remove('detected'); }
-      }
-
-      async function startViewfinder() {
-        camStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 1280 } }
-        });
-        camVideo.srcObject = camStream;
-        cameraModal.classList.add('open');
-        await new Promise(r => { camVideo.onloadedmetadata = r; });
-        const ctx = camOverlay.getContext('2d', { willReadFrequently: true });
-        const sc = document.createElement('canvas');
-        const scCtx = sc.getContext('2d', { willReadFrequently: true });
-        camScanTimer = setInterval(() => {
-          if (!camStream || camCapturing) return;
-          const vw = camVideo.videoWidth, vh = camVideo.videoHeight;
-          if (!vw || !vh) return;
-          camOverlay.width = vw; camOverlay.height = vh;
-          drawFrame(ctx, vw, vh, camDetected);
-          const sw = Math.round(vw*0.5), sh = Math.round(vh*0.5);
-          sc.width = sw; sc.height = sh;
-          scCtx.drawImage(camVideo, 0, 0, sw, sh);
-          const id = scCtx.getImageData(0, 0, sw, sh);
-          const qr = jsQR(id.data, sw, sh, { inversionAttempts: 'attemptBoth' });
-          if (qr) {
-            if (!camDetected) { camDetected = true; camHint.textContent = '✅ QR detected — capturing…'; camHint.classList.add('detected'); }
-            if (!camCapturing) {
-              camCapturing = true;
-              setTimeout(() => {
-                const cc = document.createElement('canvas');
-                cc.width = vw; cc.height = vh;
-                cc.getContext('2d').drawImage(camVideo, 0, 0, vw, vh);
-                cc.toBlob(b => { stopCamera(); processSelectedFile(b); }, 'image/jpeg', 0.95);
-              }, 300);
-            }
-          } else {
-            if (camDetected) { camDetected = false; camHint.textContent = '📷 Point camera at a QR code'; camHint.classList.remove('detected'); }
-          }
-        }, 120);
-      }
-
-      // Button: check getUserMedia synchronously to preserve user-gesture for fallback
       toggleCamBtn.addEventListener('click', () => {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          nativeCameraInput.click(); return; // gesture still active here
-        }
-        startViewfinder().catch(err => {
-          console.warn('[CAM]', err.message);
-          stopCamera();
-          showToast('Camera access denied — use the Upload button instead.', 'error');
-        });
+        nativeCameraInput.click();
       });
-      if (closeCamBtn) closeCamBtn.addEventListener('click', stopCamera);
-      if (cameraModal) cameraModal.addEventListener('click', e => { if (e.target === cameraModal) stopCamera(); });
-
 
       /* ── Send QR image blob to /scan ── */
       async function sendBlob(blob) {
@@ -2209,79 +2126,6 @@
       // PDF Export
 
 
-
-      // ── Live Camera Viewfinder ──────────────────────────────────────────
-      const cameraModal  = document.getElementById('cameraModal');
-      const camVideo     = document.getElementById('camVideo');
-      const camOverlay   = document.getElementById('camOverlay');
-      const camHint      = document.getElementById('camHint');
-      const closeCamBtn  = document.getElementById('closeCamBtn');
-      let   camStream    = null;
-      let   camScanTimer = null;
-      let   camDetected  = false;
-      let   camCapturing = false;
-
-      function drawFrame(ctx, w, h, detected) {
-        ctx.clearRect(0, 0, w, h);
-        const pad   = w * 0.10;
-        const size  = w - pad * 2;
-        const arm   = size * 0.18;
-        const lw    = 4;
-        const color = detected ? '#00ff88' : '#ffffff';
-        const glow  = detected ? 'rgba(0,255,136,0.18)' : 'transparent';
-
-        // Dimming outside frame
-        ctx.fillStyle = 'rgba(0,0,0,0.42)';
-        ctx.fillRect(0, 0, w, h);
-        ctx.clearRect(pad, pad, size, size);
-
-        // Glow when detected
-        if (detected) {
-          ctx.fillStyle = glow;
-          ctx.fillRect(pad, pad, size, size);
-        }
-
-        // Corner L-shapes
-        ctx.strokeStyle = color;
-        ctx.lineWidth   = lw;
-        ctx.lineCap     = 'round';
-
-        const corners = [
-          [pad, pad, 1, 1], [pad+size, pad, -1, 1],
-          [pad, pad+size, 1, -1], [pad+size, pad+size, -1, -1]
-        ];
-        corners.forEach(([x, y, dx, dy]) => {
-          ctx.beginPath();
-          ctx.moveTo(x + dx*arm, y);
-          ctx.lineTo(x, y);
-          ctx.lineTo(x, y + dy*arm);
-          ctx.stroke();
-        });
-
-        // Scanning line animation
-        if (!detected) {
-          const prog  = (Date.now() % 2000) / 2000;
-          const scanY = pad + size * prog;
-          const grad  = ctx.createLinearGradient(pad, scanY-8, pad, scanY+8);
-          grad.addColorStop(0, 'transparent');
-          grad.addColorStop(0.5, 'rgba(61,132,255,0.7)');
-          grad.addColorStop(1, 'transparent');
-          ctx.fillStyle = grad;
-          ctx.fillRect(pad, scanY-8, size, 16);
-        }
-      }
-
-      function stopCamera() {
-        if (camScanTimer) { clearInterval(camScanTimer); camScanTimer = null; }
-        if (camStream)    { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
-        cameraModal.classList.remove('open');
-        camDetected  = false;
-        camCapturing = false;
-        camHint.textContent = '📷 Point camera at a QR code';
-        camHint.classList.remove('detected');
-      }
-
-
       // Live Threat Feed Ticker (Real Database)
       const tickerContent = document.getElementById('tickerContent');
       async function updateTicker() {
@@ -2327,16 +2171,5 @@
 
     })();
   </script>
-
-  <!-- ─── Live Camera Viewfinder Modal ─── -->
-  <div id="cameraModal" role="dialog" aria-modal="true" aria-label="QR Code Scanner">
-    <div id="camViewport">
-      <video id="camVideo" autoplay playsinline muted></video>
-      <canvas id="camOverlay"></canvas>
-    </div>
-    <div id="camHint">📷 Point camera at a QR code</div>
-    <button id="closeCamBtn">✕ Cancel</button>
-  </div>
-
 </body>
 </html>

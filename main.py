@@ -308,6 +308,11 @@ async def home(request: Request):
 async def contact(request: Request):
     return templates.TemplateResponse(request=request, name="contact.html")
 
+@app.get("/camera", response_class=HTMLResponse)
+async def camera_page(request: Request):
+    """Dedicated full-screen QR camera scanner page."""
+    return templates.TemplateResponse(request=request, name="camera.html")
+
 @app.get("/privacy", response_class=HTMLResponse)
 async def privacy(request: Request):
     return templates.TemplateResponse(request=request, name="privacy.html")

@@ -1880,8 +1880,9 @@
         }
       });
 
+      // Navigate to dedicated full-screen camera scanner page
       toggleCamBtn.addEventListener('click', () => {
-        nativeCameraInput.click();
+        window.location.href = '/camera';
       });
 
       /* ── Send QR image blob to /scan ── */
@@ -1948,6 +1949,22 @@
       }
 
       /* ── Render result ── */
+
+      // ── On page load: check if camera page sent back a scan result ──────
+      (function checkCameraScanResult() {
+        const raw = sessionStorage.getItem('qrScanResult');
+        if (!raw) return;
+        sessionStorage.removeItem('qrScanResult');
+        try {
+          const result = JSON.parse(raw);
+          setTimeout(() => {
+            renderResult(result, 0);
+            const rc = document.getElementById('resultCard');
+            if (rc) rc.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 400);
+        } catch(e) { console.warn('Failed to parse camera scan result', e); }
+      })();
+
       function renderResult(data, ms, isManual = false) {
         const status = (data.status || 'UNKNOWN').toUpperCase();
 

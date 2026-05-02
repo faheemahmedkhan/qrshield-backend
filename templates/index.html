@@ -1952,9 +1952,28 @@
 
       // ── On page load: check if camera page sent back a scan result ──────
       (function checkCameraScanResult() {
-        const raw = sessionStorage.getItem('qrScanResult');
+        const raw     = sessionStorage.getItem('qrScanResult');
+        const preview = sessionStorage.getItem('qrCapturePreview');
         if (!raw) return;
         sessionStorage.removeItem('qrScanResult');
+
+        // Show the exact image that was sent to the server in the preview area
+        if (preview) {
+          sessionStorage.removeItem('qrCapturePreview');
+          try {
+            const previewImg       = document.getElementById('preview');
+            const previewPlaceholder = document.getElementById('previewPlaceholder');
+            const previewMeta      = document.getElementById('previewMeta');
+            if (previewImg) {
+              previewImg.src             = preview;
+              previewImg.style.display   = 'block';
+              previewImg.style.filter    = '';
+              if (previewPlaceholder) previewPlaceholder.style.display = 'none';
+              if (previewMeta)        previewMeta.innerText = 'Captured & processed image';
+            }
+          } catch(e) {}
+        }
+
         try {
           const result = JSON.parse(raw);
           setTimeout(() => {
@@ -1964,6 +1983,7 @@
           }, 400);
         } catch(e) { console.warn('Failed to parse camera scan result', e); }
       })();
+
 
       function renderResult(data, ms, isManual = false) {
         const status = (data.status || 'UNKNOWN').toUpperCase();

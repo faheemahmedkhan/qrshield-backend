@@ -16,7 +16,7 @@
   
   <!-- Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1417,56 +1417,7 @@
       text-decoration: underline;
     }
     
-    /* ── PDF Fix Mode ── */
-    body.pdf-mode {
-      background: #060a12 !important;
-      width: 820px !important;
-      padding: 0 !important;
-      margin: 0 auto !important;
-    }
-    /* Hide everything except the result cards in PDF mode */
-    body.pdf-mode header,
-    body.pdf-mode .live-ticker,
-    body.pdf-mode .hero,
-    body.pdf-mode .section-label,
-    body.pdf-mode #shortCard,
-    body.pdf-mode .controls,
-    body.pdf-mode .preview-row,
-    body.pdf-mode .footer,
-    body.pdf-mode .toast-container,
-    body.pdf-mode canvas,
-    body.pdf-mode #exportPdfBtn {
-      display: none !important;
-    }
-    body.pdf-mode .app-wrapper {
-      padding: 20px !important;
-      min-height: unset !important;
-    }
-    body.pdf-mode #resultCard,
-    body.pdf-mode #shapCard {
-      display: block !important;
-      width: 780px !important;
-      max-width: none !important;
-      border: 1px solid rgba(61,132,255,0.3) !important;
-      box-shadow: none !important;
-      margin: 0 0 16px 0 !important;
-      background: rgba(12, 20, 36, 0.95) !important;
-      page-break-inside: avoid;
-    }
-    body.pdf-mode .score-grid {
-      display: grid !important;
-      grid-template-columns: 1fr 1fr 1fr !important;
-    }
-    /* Freeze all animations so charts render fully */
-    body.pdf-mode *,
-    body.pdf-mode *::before,
-    body.pdf-mode *::after {
-      animation: none !important;
-      transition: none !important;
-    }
-    body.pdf-mode .shap-bar-fill {
-      animation: none !important;
-    }
+
   </style>
 </head>
 
@@ -1593,13 +1544,7 @@
           <div class="tag-row" id="tagRow" style="margin-bottom:0"></div>
           <div id="urlSection"></div>
         </div>
-        <button class="btn btn-ghost" id="exportPdfBtn" style="height: fit-content; margin-top:10px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg> Export PDF
-        </button>
+
       </div>
 
       <!-- Score mini summary -->
@@ -1729,7 +1674,7 @@
       const shapCard = document.getElementById('shapCard');
       const shapChart = document.getElementById('shapChart');
 
-      const TIMEOUT = 45000;
+      const TIMEOUT = 90000; // 90s — accommodates slow mobile connections
       let busy = false;
 
       // Handle Image Selection Logic (for both file uploads and camera shots)
@@ -1881,6 +1826,7 @@
                  const cropData = cropCtx.getImageData(0, 0, OUT, OUT);
                  toGrayscale(cropData.data);
                  cropCtx.putImageData(cropData, 0, 0);
+                 previewImg.onload = () => { previewImg.style.filter = ''; previewImg.onload = null; };
                  previewImg.src = cropCanvas.toDataURL("image/jpeg", 0.95);
                  console.log("[SCANNER] Detected scale=" + detectedScale + " crop=" + Math.round(cropW) + "x" + Math.round(cropH));
                  cropCanvas.toBlob((b) => { sendBlob(b); }, "image/jpeg", 0.95);
@@ -1896,6 +1842,7 @@
                  const fbData = fbCtx.getImageData(0, 0, 512, 512);
                  toGrayscale(fbData.data);
                  fbCtx.putImageData(fbData, 0, 0);
+                 previewImg.onload = () => { previewImg.style.filter = ''; previewImg.onload = null; };
                  previewImg.src = fbCanvas.toDataURL("image/jpeg", 0.85);
                  fbCanvas.toBlob((b) => { sendBlob(b); }, "image/jpeg", 0.85);
               }
@@ -1914,6 +1861,12 @@
       
       nativeCameraInput.addEventListener('change', () => {
         const file = nativeCameraInput.files[0];
+        if (!file) return;
+        // Show loading placeholder immediately so preview isn't white
+        previewImg.style.display = 'block';
+        previewPlaceholder.style.display = 'none';
+        previewImg.style.filter = 'brightness(0.4)';
+        previewMeta.innerHTML = 'Processing image…<span class="spinner"></span>';
         if (file) {
           processSelectedFile(file);
         }
@@ -2171,44 +2124,7 @@
       window.alert = (msg) => showToast(msg, 'error');
 
       // PDF Export
-      const exportPdfBtn = document.getElementById('exportPdfBtn');
-      if (exportPdfBtn) {
-        exportPdfBtn.addEventListener('click', () => {
-          // Target the wrapper so both resultCard and shapCard are captured
-          const el = document.querySelector('.app-wrapper');
-          if (!el) { showToast('Nothing to export yet.', 'error'); return; }
-          
-          document.body.classList.add('pdf-mode');
-          exportPdfBtn.style.display = 'none';
-          
-          // 800ms delay — ensures SHAP bars finish drawing and DOM reflows
-          setTimeout(() => {
-            const opt = {
-              margin: [0.25, 0.3],
-              filename: 'QRShield_Intelligence_Report.pdf',
-              image: { type: 'jpeg', quality: 0.98 },
-              html2canvas: { 
-                scale: 2, 
-                useCORS: true, 
-                backgroundColor: '#060a12',
-                logging: false,
-                letterRendering: true,
-                windowWidth: 820
-              },
-              jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-            html2pdf().set(opt).from(el).save().then(() => {
-              document.body.classList.remove('pdf-mode');
-              exportPdfBtn.style.display = 'block';
-              showToast('Intelligence Report exported!', 'success');
-            }).catch(() => {
-              document.body.classList.remove('pdf-mode');
-              exportPdfBtn.style.display = 'block';
-              showToast('PDF export failed, please retry.', 'error');
-            });
-          }, 800);
-        });
-      }
+
 
       // Live Threat Feed Ticker (Real Database)
       const tickerContent = document.getElementById('tickerContent');

@@ -123,31 +123,35 @@
       gCtx.putImageData(d, 0, 0);
     }
 
-    // ── object-fit:cover transform: display px ↔ video px ─────────────────
-    function getCoverTransform() {
-      const dw = video.clientWidth,  dh = video.clientHeight;
-      const vw = video.videoWidth,   vh = video.videoHeight;
-      if (!vw || !vh) return null;
+    // ── Get the video crop rect that matches the displayed square frame ────
+    // object-fit:cover always centers the video, so:
+    //   center of video = center of screen = center of the frame
+    // We just compute the proportional size of the crop.
+    function getVideoCropRect() {
+      const dw = video.clientWidth  || window.innerWidth;
+      const dh = video.clientHeight || window.innerHeight;
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      if (!vw || !vh || !dw || !dh) return null;
+
+      // Scale used by object-fit:cover
       const scale = Math.max(dw / vw, dh / vh);
-      const offX  = (vw * scale - dw) / 2;
-      const offY  = (vh * scale - dh) / 2;
-      return { scale, offX, offY };
+
+      // Frame is 80% of shorter screen dim; convert to video pixels
+      const frameDisplayPx = Math.min(dw, dh) * 0.80;
+      const frameVideoPx   = frameDisplayPx / scale;
+
+      // 3% margin for safety
+      const margin   = frameVideoPx * 0.03;
+      const cropSize = Math.round(Math.min(frameVideoPx + margin * 2, Math.min(vw, vh)));
+
+      // Center of video (object-fit:cover always centers)
+      const cx = Math.round(Math.max(0, vw / 2 - cropSize / 2));
+      const cy = Math.round(Math.max(0, vh / 2 - cropSize / 2));
+
+      return { cx, cy, cs: cropSize };
     }
 
-    // Convert display-space rect → video-space rect
-    function displayToVideo(dx0, dy0, dsize) {
-      const t = getCoverTransform();
-      if (!t) return null;
-      const vx0 = (dx0  + t.offX) / t.scale;
-      const vy0 = (dy0  + t.offY) / t.scale;
-      const vs  = dsize / t.scale;
-      const vw  = video.videoWidth, vh = video.videoHeight;
-      return {
-        vx0: Math.round(Math.max(0, vx0)),
-        vy0: Math.round(Math.max(0, vy0)),
-        vs:  Math.round(Math.min(vs, Math.min(vw - vx0, vh - vy0)))
-      };
-    }
 
     // ── Draw TRUE SQUARE frame in display/CSS pixel space ─────────────────
     function drawFrame(state) {
@@ -216,11 +220,9 @@
       scanning = false;
       captureBtn.classList.add('disabled');
 
-      const { x0, y0, size } = lastFrame;
-      const margin = Math.round(size * 0.03);
-      const rect   = displayToVideo(x0 - margin, y0 - margin, size + margin * 2);
-      if (!rect || rect.vs < 10) {
-        hint.textContent = '❌ Could not map to video frame. Try again.';
+      const rect = getVideoCropRect();
+      if (!rect || rect.cs < 10) {
+        hint.textContent = '❌ Video not ready. Try again.';
         hint.className = 'error';
         scanning = true; captureBtn.classList.remove('disabled');
         return;
@@ -231,7 +233,7 @@
       const frameCanvas = document.createElement('canvas');
       frameCanvas.width = OUT; frameCanvas.height = OUT;
       const fCtx = frameCanvas.getContext('2d', { willReadFrequently: true });
-      fCtx.drawImage(video, rect.vx0, rect.vy0, rect.vs, rect.vs, 0, 0, OUT, OUT);
+      fCtx.drawImage(video, rect.cx, rect.cy, rect.cs, rect.cs, 0, 0, OUT, OUT);
 
       // Step 2: Run jsQR for tight QR boundary detection within the crop
       const id = fCtx.getImageData(0, 0, OUT, OUT);
@@ -310,11 +312,11 @@
 
     function autoDetect() {
       if (!scanning || !lastFrame) return;
-      const rect = displayToVideo(lastFrame.x0, lastFrame.y0, lastFrame.size);
-      if (!rect || rect.vs < 10) return;
-      const sw = Math.round(rect.vs * 0.5);
+      const rect = getVideoCropRect();
+      if (!rect || rect.cs < 10) return;
+      const sw = Math.round(rect.cs * 0.5);
       sc.width = sw; sc.height = sw;
-      scCtx.drawImage(video, rect.vx0, rect.vy0, rect.vs, rect.vs, 0, 0, sw, sw);
+      scCtx.drawImage(video, rect.cx, rect.cy, rect.cs, rect.cs, 0, 0, sw, sw);
       const id = scCtx.getImageData(0, 0, sw, sw);
       const qr = jsQR(id.data, sw, sw, { inversionAttempts: 'attemptBoth' });
       if (qr) { clearInterval(autoTimer); processCapture(); }

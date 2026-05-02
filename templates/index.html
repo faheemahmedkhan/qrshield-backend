@@ -1880,9 +1880,7 @@
         }
       });
 
-      toggleCamBtn.addEventListener('click', () => {
-        nativeCameraInput.click();
-      });
+      toggleCamBtn.addEventListener('click', () => { openCamera(); });
 
       /* ── Send QR image blob to /scan ── */
       async function sendBlob(blob) {
@@ -2126,6 +2124,161 @@
       // PDF Export
 
 
+
+      // ── Live Camera Viewfinder ──────────────────────────────────────────
+      const cameraModal  = document.getElementById('cameraModal');
+      const camVideo     = document.getElementById('camVideo');
+      const camOverlay   = document.getElementById('camOverlay');
+      const camHint      = document.getElementById('camHint');
+      const closeCamBtn  = document.getElementById('closeCamBtn');
+      let   camStream    = null;
+      let   camScanTimer = null;
+      let   camDetected  = false;
+      let   camCapturing = false;
+
+      function drawFrame(ctx, w, h, detected) {
+        ctx.clearRect(0, 0, w, h);
+        const pad   = w * 0.10;
+        const size  = w - pad * 2;
+        const arm   = size * 0.18;
+        const lw    = 4;
+        const color = detected ? '#00ff88' : '#ffffff';
+        const glow  = detected ? 'rgba(0,255,136,0.18)' : 'transparent';
+
+        // Dimming outside frame
+        ctx.fillStyle = 'rgba(0,0,0,0.42)';
+        ctx.fillRect(0, 0, w, h);
+        ctx.clearRect(pad, pad, size, size);
+
+        // Glow when detected
+        if (detected) {
+          ctx.fillStyle = glow;
+          ctx.fillRect(pad, pad, size, size);
+        }
+
+        // Corner L-shapes
+        ctx.strokeStyle = color;
+        ctx.lineWidth   = lw;
+        ctx.lineCap     = 'round';
+
+        const corners = [
+          [pad, pad, 1, 1], [pad+size, pad, -1, 1],
+          [pad, pad+size, 1, -1], [pad+size, pad+size, -1, -1]
+        ];
+        corners.forEach(([x, y, dx, dy]) => {
+          ctx.beginPath();
+          ctx.moveTo(x + dx*arm, y);
+          ctx.lineTo(x, y);
+          ctx.lineTo(x, y + dy*arm);
+          ctx.stroke();
+        });
+
+        // Scanning line animation
+        if (!detected) {
+          const prog  = (Date.now() % 2000) / 2000;
+          const scanY = pad + size * prog;
+          const grad  = ctx.createLinearGradient(pad, scanY-8, pad, scanY+8);
+          grad.addColorStop(0, 'transparent');
+          grad.addColorStop(0.5, 'rgba(61,132,255,0.7)');
+          grad.addColorStop(1, 'transparent');
+          ctx.fillStyle = grad;
+          ctx.fillRect(pad, scanY-8, size, 16);
+        }
+      }
+
+      function stopCamera() {
+        if (camScanTimer) { clearInterval(camScanTimer); camScanTimer = null; }
+        if (camStream)    { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+        cameraModal.classList.remove('open');
+        camDetected  = false;
+        camCapturing = false;
+        camHint.textContent = '📷 Point camera at a QR code';
+        camHint.classList.remove('detected');
+      }
+
+      async function openCamera() {
+        // Fallback to native file picker if getUserMedia not supported
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          nativeCameraInput.click();
+          return;
+        }
+        try {
+          camStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 1280 } }
+          });
+          camVideo.srcObject = camStream;
+          cameraModal.classList.add('open');
+
+          // Wait for video to be ready
+          await new Promise(r => camVideo.onloadedmetadata = r);
+          camOverlay.width  = camVideo.videoWidth  || 640;
+          camOverlay.height = camVideo.videoHeight || 640;
+          const ctx = camOverlay.getContext('2d', { willReadFrequently: true });
+
+          // Scan every 120ms
+          const scanCanvas = document.createElement('canvas');
+          const scanCtx    = scanCanvas.getContext('2d', { willReadFrequently: true });
+
+          camScanTimer = setInterval(() => {
+            if (!camStream || camCapturing) return;
+            const vw = camVideo.videoWidth;
+            const vh = camVideo.videoHeight;
+            if (!vw || !vh) return;
+
+            camOverlay.width  = vw;
+            camOverlay.height = vh;
+
+            drawFrame(ctx, vw, vh, camDetected);
+
+            // jsQR scan at half resolution for speed
+            const sw = Math.round(vw * 0.5);
+            const sh = Math.round(vh * 0.5);
+            scanCanvas.width  = sw;
+            scanCanvas.height = sh;
+            scanCtx.drawImage(camVideo, 0, 0, sw, sh);
+            const imgData = scanCtx.getImageData(0, 0, sw, sh);
+            const qr = jsQR(imgData.data, sw, sh, { inversionAttempts: 'attemptBoth' });
+
+            if (qr) {
+              if (!camDetected) {
+                camDetected = true;
+                camHint.textContent = '✅ QR Code detected — capturing…';
+                camHint.classList.add('detected');
+              }
+              if (!camCapturing) {
+                camCapturing = true;
+                // Flash effect then capture full frame
+                setTimeout(() => {
+                  const capCanvas = document.createElement('canvas');
+                  capCanvas.width  = vw;
+                  capCanvas.height = vh;
+                  capCanvas.getContext('2d').drawImage(camVideo, 0, 0, vw, vh);
+                  capCanvas.toBlob(blob => {
+                    stopCamera();
+                    processSelectedFile(blob);
+                  }, 'image/jpeg', 0.95);
+                }, 300);
+              }
+            } else {
+              if (camDetected) {
+                camDetected = false;
+                camHint.textContent = '📷 Point camera at a QR code';
+                camHint.classList.remove('detected');
+              }
+            }
+          }, 120);
+
+        } catch (err) {
+          console.warn('[CAM] getUserMedia failed:', err.message, '— using native picker');
+          stopCamera();
+          nativeCameraInput.click();
+        }
+      }
+
+      closeCamBtn.addEventListener('click', stopCamera);
+      // Close on backdrop click
+      cameraModal.addEventListener('click', e => { if (e.target === cameraModal) stopCamera(); });
+
       // Live Threat Feed Ticker (Real Database)
       const tickerContent = document.getElementById('tickerContent');
       async function updateTicker() {
@@ -2171,5 +2324,16 @@
 
     })();
   </script>
+
+  <!-- ─── Live Camera Viewfinder Modal ─── -->
+  <div id="cameraModal" role="dialog" aria-modal="true" aria-label="QR Code Scanner">
+    <div id="camViewport">
+      <video id="camVideo" autoplay playsinline muted></video>
+      <canvas id="camOverlay"></canvas>
+    </div>
+    <div id="camHint">📷 Point camera at a QR code</div>
+    <button id="closeCamBtn">✕ Cancel</button>
+  </div>
+
 </body>
 </html>

@@ -159,49 +159,93 @@
         return;
       }
 
-      // ── Step 1: Crop center square of video (matches the square frame on screen)
-      // Take 80% of the shorter video dimension, centered — same proportion as the frame
+      // ── Step 1: Crop center square of video
+      // 80% of shorter video dimension, centered — matches the square frame on screen
       const cropSize = Math.round(Math.min(vw, vh) * 0.80);
       const cx = Math.round((vw - cropSize) / 2);
       const cy = Math.round((vh - cropSize) / 2);
 
-      const OUT = 1024; // higher resolution output for better QR decode accuracy
+      const OUT = 1280; // high-res output for better DL accuracy
       const frameCanvas = document.createElement('canvas');
       frameCanvas.width = OUT; frameCanvas.height = OUT;
       const fCtx = frameCanvas.getContext('2d', { willReadFrequently: true });
       fCtx.drawImage(video, cx, cy, cropSize, cropSize, 0, 0, OUT, OUT);
 
-      // ── Step 2: Run jsQR on the 512×512 crop to find tight QR boundaries
-      const id = fCtx.getImageData(0, 0, OUT, OUT);
-      const qr = jsQR(id.data, OUT, OUT, { inversionAttempts: 'attemptBoth' });
+      // ── Step 2: Multi-pass jsQR detection for maximum boundary accuracy
+      let qr = null;
 
+      // Pass 1: raw color image (fastest)
+      const rawId = fCtx.getImageData(0, 0, OUT, OUT);
+      qr = jsQR(rawId.data, OUT, OUT, { inversionAttempts: 'attemptBoth' });
+
+      // Pass 2: grayscale + contrast stretch (finds QR in poor/uneven lighting)
+      if (!qr) {
+        const gCanvas = document.createElement('canvas');
+        gCanvas.width = OUT; gCanvas.height = OUT;
+        const gCtx = gCanvas.getContext('2d', { willReadFrequently: true });
+        gCtx.drawImage(frameCanvas, 0, 0);
+        toGrayscale(gCtx, OUT, OUT); // contrast stretch makes edges pop
+        const gId = gCtx.getImageData(0, 0, OUT, OUT);
+        qr = jsQR(gId.data, OUT, OUT, { inversionAttempts: 'attemptBoth' });
+      }
+
+      // ── Step 3: Tight crop using all 4 QR corners → forced square → scale to OUT
       let finalCanvas;
       if (qr && qr.location) {
-        // Tight crop to actual QR code boundaries + small padding
-        const pts = [qr.location.topLeftCorner, qr.location.topRightCorner,
-                     qr.location.bottomRightCorner, qr.location.bottomLeftCorner];
-        const pad  = 16;
-        const minX = Math.max(0,   Math.min(...pts.map(p => p.x)) - pad);
-        const minY = Math.max(0,   Math.min(...pts.map(p => p.y)) - pad);
-        const maxX = Math.min(OUT, Math.max(...pts.map(p => p.x)) + pad);
-        const maxY = Math.min(OUT, Math.max(...pts.map(p => p.y)) + pad);
+        const pts = [
+          qr.location.topLeftCorner,
+          qr.location.topRightCorner,
+          qr.location.bottomRightCorner,
+          qr.location.bottomLeftCorner
+        ];
+
+        const rawMinX = Math.min(...pts.map(p => p.x));
+        const rawMinY = Math.min(...pts.map(p => p.y));
+        const rawMaxX = Math.max(...pts.map(p => p.x));
+        const rawMaxY = Math.max(...pts.map(p => p.y));
+
+        // Proportional quiet zone: 4% of detected QR size
+        const qrSpan = Math.max(rawMaxX - rawMinX, rawMaxY - rawMinY);
+        const pad    = Math.round(qrSpan * 0.04);
+
+        let minX = Math.max(0,   rawMinX - pad);
+        let minY = Math.max(0,   rawMinY - pad);
+        let maxX = Math.min(OUT, rawMaxX + pad);
+        let maxY = Math.min(OUT, rawMaxY + pad);
+
+        // Force the bounding box to be SQUARE (required for DL model)
+        const boxW = maxX - minX;
+        const boxH = maxY - minY;
+        if (boxW > boxH) {
+          const expand = (boxW - boxH) / 2;
+          minY = Math.max(0,   minY - expand);
+          maxY = Math.min(OUT, maxY + expand);
+        } else if (boxH > boxW) {
+          const expand = (boxH - boxW) / 2;
+          minX = Math.max(0,   minX - expand);
+          maxX = Math.min(OUT, maxX + expand);
+        }
+
+        const sqSize = maxX - minX; // now guaranteed square (or as close as bounds allow)
 
         finalCanvas = document.createElement('canvas');
         finalCanvas.width = OUT; finalCanvas.height = OUT;
-        finalCanvas.getContext('2d').drawImage(frameCanvas, minX, minY, maxX-minX, maxY-minY, 0, 0, OUT, OUT);
-        hint.textContent = '✅ QR boundary detected — cropped!';
+        finalCanvas.getContext('2d').drawImage(frameCanvas, minX, minY, sqSize, sqSize, 0, 0, OUT, OUT);
+
+        hint.textContent = '✅ QR boundaries detected — tight crop applied';
         hint.className   = 'detected';
       } else {
-        // jsQR couldn't find boundaries — use the frame square as the crop
+        // jsQR couldn't detect — fall back to frame square crop
         finalCanvas = frameCanvas;
-        hint.textContent = '📐 Using frame crop — processing…';
+        hint.textContent = '📐 Frame crop used — position QR better next time';
         hint.className   = '';
       }
 
       drawFrame('detected');
 
-      // ── Step 3: Grayscale + contrast stretch
+      // ── Step 4: Grayscale + contrast stretch on the final tight crop
       toGrayscale(finalCanvas.getContext('2d'), OUT, OUT);
+
 
       // ── Step 4: Store preview for main page to display
       sessionStorage.setItem('qrCapturePreview', finalCanvas.toDataURL('image/jpeg', 0.92));

@@ -11,57 +11,45 @@
     #camWrap { position:relative; width:100vw; height:100dvh; }
     #video   { width:100%; height:100%; object-fit:cover; display:block; }
     #overlay { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-
-    #topBar {
-      position:absolute; top:0; left:0; right:0;
-      padding:16px 18px 0;
-      background:linear-gradient(rgba(0,0,0,0.65), transparent);
+    #topBar  {
+      position:absolute; top:0; left:0; right:0; padding:16px 18px 0;
+      background:linear-gradient(rgba(0,0,0,0.65),transparent);
       display:flex; align-items:center; gap:10px; z-index:10;
     }
     .logo { color:#3d84ff; font-size:0.95rem; font-weight:800; letter-spacing:0.06em; }
     .live-dot { width:7px; height:7px; background:#ff3b3b; border-radius:50%; animation:blink 1.2s infinite; }
     @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.15;} }
-
     #guideLabel {
-      position:absolute; z-index:10; left:0; right:0;
-      text-align:center; color:rgba(255,255,255,0.82);
-      font-size:0.78rem; font-weight:600; letter-spacing:0.04em;
-      pointer-events:none;
+      position:absolute; z-index:10; left:0; right:0; text-align:center;
+      color:rgba(255,255,255,0.85); font-size:0.8rem; font-weight:600;
+      letter-spacing:0.04em; pointer-events:none;
     }
-
     #bottomBar {
-      position:absolute; bottom:0; left:0; right:0;
-      padding:14px 24px 38px;
-      background:linear-gradient(transparent, rgba(0,0,0,0.92));
-      display:flex; flex-direction:column; align-items:center; gap:10px;
-      z-index:10;
+      position:absolute; bottom:0; left:0; right:0; padding:14px 24px 40px;
+      background:linear-gradient(transparent,rgba(0,0,0,0.92));
+      display:flex; flex-direction:column; align-items:center; gap:12px; z-index:10;
     }
     #hint {
-      color:#fff; font-size:0.88rem; font-weight:600;
-      letter-spacing:0.02em; text-align:center; min-height:1.3em; transition:color 0.3s;
+      color:#fff; font-size:0.88rem; font-weight:600; text-align:center;
+      min-height:1.3em; transition:color 0.3s;
     }
     #hint.detected  { color:#00ff88; }
     #hint.uploading { color:#3d84ff; }
     #hint.error     { color:#ff4757; }
-    #progressBar {
-      width:60%; height:3px; background:#3d84ff;
-      border-radius:2px; transition:width 0.4s ease; display:none;
-    }
-    #btnRow { display:flex; align-items:center; justify-content:center; gap:20px; width:100%; margin-top:2px; }
-
+    #progressBar { width:60%; height:3px; background:#3d84ff; border-radius:2px; transition:width 0.4s ease; display:none; }
+    #btnRow { display:flex; align-items:center; justify-content:center; gap:24px; width:100%; }
     #captureBtn {
-      width:68px; height:68px; border-radius:50%; background:#fff;
-      border:5px solid rgba(255,255,255,0.35); cursor:pointer;
-      transition:transform 0.12s, background 0.2s;
+      width:70px; height:70px; border-radius:50%; background:#fff;
+      border:5px solid rgba(255,255,255,0.4); cursor:pointer;
       display:flex; align-items:center; justify-content:center; flex-shrink:0;
+      transition:transform 0.12s, background 0.15s;
     }
     #captureBtn:active { transform:scale(0.88); background:#ddd; }
     #captureBtn.disabled { opacity:0.4; pointer-events:none; }
-    .shutter-inner { width:50px; height:50px; border-radius:50%; background:#fff; border:3px solid #333; }
-
+    .shutter-inner { width:52px; height:52px; border-radius:50%; background:#fff; border:3px solid #333; }
     #cancelBtn {
       background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.25);
-      color:#fff; padding:10px 26px; border-radius:999px;
+      color:#fff; padding:10px 28px; border-radius:999px;
       font-size:0.85rem; font-weight:600; cursor:pointer; transition:background 0.2s;
     }
     #cancelBtn:hover { background:rgba(255,255,255,0.22); }
@@ -71,19 +59,14 @@
   <div id="camWrap">
     <video id="video" autoplay playsinline muted></video>
     <canvas id="overlay"></canvas>
-    <div id="topBar">
-      <div class="live-dot"></div>
-      <span class="logo">QRShield</span>
-    </div>
-    <div id="guideLabel">Align QR code inside the square</div>
+    <div id="topBar"><div class="live-dot"></div><span class="logo">QRShield</span></div>
+    <div id="guideLabel">Align QR code inside the square frame</div>
     <div id="bottomBar">
-      <div id="hint">📷 Place QR code in the frame and tap Capture</div>
+      <div id="hint">📷 Tap the shutter button to capture</div>
       <div id="progressBar"></div>
       <div id="btnRow">
         <button id="cancelBtn" onclick="stopAndGo('/')">✕ Cancel</button>
-        <button id="captureBtn" title="Capture QR Code">
-          <div class="shutter-inner"></div>
-        </button>
+        <button id="captureBtn"><div class="shutter-inner"></div></button>
       </div>
     </div>
   </div>
@@ -97,9 +80,9 @@
     const guideLabel  = document.getElementById('guideLabel');
     const ctx         = overlay.getContext('2d', { willReadFrequently: true });
 
-    let stream    = null;
-    let scanning  = true;
-    let lastFrame = null; // display-space {x0, y0, size}
+    let stream   = null;
+    let scanning = true;
+    let lastFrame = null;
 
     function stopAndGo(url) {
       if (stream) stream.getTracks().forEach(t => t.stop());
@@ -123,150 +106,107 @@
       gCtx.putImageData(d, 0, 0);
     }
 
-    // ── Get the video crop rect that matches the displayed square frame ────
-    // object-fit:cover always centers the video, so:
-    //   center of video = center of screen = center of the frame
-    // We just compute the proportional size of the crop.
-    function getVideoCropRect() {
-      const dw = video.clientWidth  || window.innerWidth;
-      const dh = video.clientHeight || window.innerHeight;
-      const vw = video.videoWidth;
-      const vh = video.videoHeight;
-      if (!vw || !vh || !dw || !dh) return null;
-
-      // Scale used by object-fit:cover
-      const scale = Math.max(dw / vw, dh / vh);
-
-      // Frame is 80% of shorter screen dim; convert to video pixels
-      const frameDisplayPx = Math.min(dw, dh) * 0.80;
-      const frameVideoPx   = frameDisplayPx / scale;
-
-      // 3% margin for safety
-      const margin   = frameVideoPx * 0.03;
-      const cropSize = Math.round(Math.min(frameVideoPx + margin * 2, Math.min(vw, vh)));
-
-      // Center of video (object-fit:cover always centers)
-      const cx = Math.round(Math.max(0, vw / 2 - cropSize / 2));
-      const cy = Math.round(Math.max(0, vh / 2 - cropSize / 2));
-
-      return { cx, cy, cs: cropSize };
-    }
-
-
-    // ── Draw TRUE SQUARE frame in display/CSS pixel space ─────────────────
+    // ── Draw TRUE SQUARE frame in screen (CSS) pixels ─────────────────────
     function drawFrame(state) {
-      // Use actual screen dimensions for the canvas — guarantees a true square
       const dw = video.clientWidth  || window.innerWidth;
       const dh = video.clientHeight || window.innerHeight;
-
       overlay.width  = dw;
       overlay.height = dh;
       ctx.clearRect(0, 0, dw, dh);
 
-      // Square = 80% of the SHORTER screen side → always visually square
       const size = Math.round(Math.min(dw, dh) * 0.80);
       const x0   = Math.round((dw - size) / 2);
       const y0   = Math.round((dh - size) / 2);
       const arm  = Math.round(size * 0.14);
+      lastFrame  = { x0, y0, size, dw, dh };
 
-      lastFrame = { x0, y0, size };
-
-      // Move guide label above frame
       guideLabel.style.top = Math.max(54, y0 - 36) + 'px';
 
-      // Dim outside the square
       ctx.fillStyle = 'rgba(0,0,0,0.55)';
       ctx.fillRect(0, 0, dw, dh);
       ctx.clearRect(x0, y0, size, size);
 
-      // Inner tint by state
-      if (state === 'detected') {
-        ctx.fillStyle = 'rgba(0,255,136,0.18)';
-        ctx.fillRect(x0, y0, size, size);
-      } else if (state === 'uploading') {
-        ctx.fillStyle = 'rgba(61,132,255,0.18)';
-        ctx.fillRect(x0, y0, size, size);
-      }
+      if (state === 'detected')  { ctx.fillStyle = 'rgba(0,255,136,0.18)'; ctx.fillRect(x0, y0, size, size); }
+      if (state === 'uploading') { ctx.fillStyle = 'rgba(61,132,255,0.18)'; ctx.fillRect(x0, y0, size, size); }
 
-      // Corner L-shapes
       const color = state === 'detected' ? '#00ff88' : state === 'uploading' ? '#3d84ff' : '#ffffff';
       ctx.strokeStyle = color; ctx.lineWidth = 5; ctx.lineCap = 'round';
-      [
-        [x0,      y0,       1,  1],
-        [x0+size, y0,      -1,  1],
-        [x0,      y0+size,  1, -1],
-        [x0+size, y0+size, -1, -1]
-      ].forEach(([x, y, dx, dy]) => {
-        ctx.beginPath();
-        ctx.moveTo(x + dx*arm, y); ctx.lineTo(x, y); ctx.lineTo(x, y + dy*arm);
-        ctx.stroke();
+      [[x0,y0,1,1],[x0+size,y0,-1,1],[x0,y0+size,1,-1],[x0+size,y0+size,-1,-1]].forEach(([x,y,dx,dy])=>{
+        ctx.beginPath(); ctx.moveTo(x+dx*arm,y); ctx.lineTo(x,y); ctx.lineTo(x,y+dy*arm); ctx.stroke();
       });
 
-      // Scanning line animation
       if (state === 'scanning') {
         const scanY = y0 + size * ((Date.now() % 2000) / 2000);
         const g = ctx.createLinearGradient(x0, scanY-12, x0, scanY+12);
-        g.addColorStop(0, 'transparent');
-        g.addColorStop(0.5, 'rgba(61,132,255,0.75)');
-        g.addColorStop(1, 'transparent');
-        ctx.fillStyle = g;
-        ctx.fillRect(x0, scanY-12, size, 24);
+        g.addColorStop(0,'transparent'); g.addColorStop(0.5,'rgba(61,132,255,0.75)'); g.addColorStop(1,'transparent');
+        ctx.fillStyle = g; ctx.fillRect(x0, scanY-12, size, 24);
       }
     }
 
-    // ── Capture, crop, grayscale and upload ───────────────────────────────
+    // ── CAPTURE: crop center square from RAW VIDEO, then tighter with jsQR ─
     function processCapture() {
-      if (!scanning || !lastFrame) return;
+      if (!scanning) return;
       scanning = false;
       captureBtn.classList.add('disabled');
 
-      const rect = getVideoCropRect();
-      if (!rect || rect.cs < 10) {
-        hint.textContent = '❌ Video not ready. Try again.';
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+
+      if (!vw || !vh) {
+        hint.textContent = '❌ Camera not ready. Try again.';
         hint.className = 'error';
         scanning = true; captureBtn.classList.remove('disabled');
         return;
       }
 
+      // ── Step 1: Crop center square of video (matches the square frame on screen)
+      // Take 80% of the shorter video dimension, centered — same proportion as the frame
+      const cropSize = Math.round(Math.min(vw, vh) * 0.80);
+      const cx = Math.round((vw - cropSize) / 2);
+      const cy = Math.round((vh - cropSize) / 2);
+
       const OUT = 512;
-      // Step 1: Crop frame area from live video → 512×512
       const frameCanvas = document.createElement('canvas');
       frameCanvas.width = OUT; frameCanvas.height = OUT;
       const fCtx = frameCanvas.getContext('2d', { willReadFrequently: true });
-      fCtx.drawImage(video, rect.cx, rect.cy, rect.cs, rect.cs, 0, 0, OUT, OUT);
+      fCtx.drawImage(video, cx, cy, cropSize, cropSize, 0, 0, OUT, OUT);
 
-      // Step 2: Run jsQR for tight QR boundary detection within the crop
+      // ── Step 2: Run jsQR on the 512×512 crop to find tight QR boundaries
       const id = fCtx.getImageData(0, 0, OUT, OUT);
       const qr = jsQR(id.data, OUT, OUT, { inversionAttempts: 'attemptBoth' });
 
       let finalCanvas;
       if (qr && qr.location) {
+        // Tight crop to actual QR code boundaries + small padding
         const pts = [qr.location.topLeftCorner, qr.location.topRightCorner,
                      qr.location.bottomRightCorner, qr.location.bottomLeftCorner];
-        const pad  = 14;
+        const pad  = 16;
         const minX = Math.max(0,   Math.min(...pts.map(p => p.x)) - pad);
         const minY = Math.max(0,   Math.min(...pts.map(p => p.y)) - pad);
         const maxX = Math.min(OUT, Math.max(...pts.map(p => p.x)) + pad);
         const maxY = Math.min(OUT, Math.max(...pts.map(p => p.y)) + pad);
+
         finalCanvas = document.createElement('canvas');
         finalCanvas.width = OUT; finalCanvas.height = OUT;
         finalCanvas.getContext('2d').drawImage(frameCanvas, minX, minY, maxX-minX, maxY-minY, 0, 0, OUT, OUT);
-        hint.textContent = '✅ QR boundaries detected — processing…';
+        hint.textContent = '✅ QR boundary detected — cropped!';
         hint.className   = 'detected';
       } else {
-        finalCanvas = frameCanvas; // fallback: use full frame square
-        hint.textContent = '📐 Using frame area — processing…';
+        // jsQR couldn't find boundaries — use the frame square as the crop
+        finalCanvas = frameCanvas;
+        hint.textContent = '📐 Using frame crop — processing…';
         hint.className   = '';
       }
+
       drawFrame('detected');
 
-      // Step 3: Grayscale + contrast stretch
+      // ── Step 3: Grayscale + contrast stretch
       toGrayscale(finalCanvas.getContext('2d'), OUT, OUT);
 
-      // Step 4: Store preview base64 → main page will display it
+      // ── Step 4: Store preview for main page to display
       sessionStorage.setItem('qrCapturePreview', finalCanvas.toDataURL('image/jpeg', 0.92));
 
-      // Step 5: Upload to /scan
+      // ── Step 5: Upload
       setTimeout(() => {
         drawFrame('uploading');
         hint.textContent = '⬆ Uploading to server…';
@@ -297,30 +237,14 @@
       }, 350);
     }
 
-    // ── Animation loop (runs in display space) ────────────────────────────
+    // ── Animation loop ────────────────────────────────────────────────────
     function loop() {
       drawFrame(scanning ? 'scanning' : 'detected');
       if (scanning) requestAnimationFrame(loop);
     }
 
+    // Manual capture ONLY — no auto-detect
     captureBtn.addEventListener('click', processCapture);
-
-    // ── Auto-detect: scan inside frame every 200ms ────────────────────────
-    const sc    = document.createElement('canvas');
-    const scCtx = sc.getContext('2d', { willReadFrequently: true });
-    let autoTimer = null;
-
-    function autoDetect() {
-      if (!scanning || !lastFrame) return;
-      const rect = getVideoCropRect();
-      if (!rect || rect.cs < 10) return;
-      const sw = Math.round(rect.cs * 0.5);
-      sc.width = sw; sc.height = sw;
-      scCtx.drawImage(video, rect.cx, rect.cy, rect.cs, rect.cs, 0, 0, sw, sw);
-      const id = scCtx.getImageData(0, 0, sw, sw);
-      const qr = jsQR(id.data, sw, sw, { inversionAttempts: 'attemptBoth' });
-      if (qr) { clearInterval(autoTimer); processCapture(); }
-    }
 
     // ── Start camera ──────────────────────────────────────────────────────
     navigator.mediaDevices.getUserMedia({
@@ -328,10 +252,7 @@
     }).then(s => {
       stream = s;
       video.srcObject = s;
-      video.onloadedmetadata = () => {
-        loop();
-        autoTimer = setInterval(autoDetect, 200);
-      };
+      video.onloadedmetadata = () => loop();
     }).catch(() => {
       hint.textContent = '❌ Camera access denied. Please allow camera permission and reload.';
       hint.className   = 'error';

@@ -165,7 +165,7 @@
       const cx = Math.round((vw - cropSize) / 2);
       const cy = Math.round((vh - cropSize) / 2);
 
-      const OUT = 512;
+      const OUT = 1024; // higher resolution output for better QR decode accuracy
       const frameCanvas = document.createElement('canvas');
       frameCanvas.width = OUT; frameCanvas.height = OUT;
       const fCtx = frameCanvas.getContext('2d', { willReadFrequently: true });
@@ -233,7 +233,7 @@
               scanning = true;
               captureBtn.classList.remove('disabled');
             });
-        }, 'image/jpeg', 0.95);
+        }, 'image/jpeg', 0.97);
       }, 350);
     }
 
@@ -248,7 +248,12 @@
 
     // ── Start camera ──────────────────────────────────────────────────────
     navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1920 } }
+      video: {
+        facingMode: { ideal: 'environment' },
+        width:  { ideal: 4096, min: 1280 },
+        height: { ideal: 4096, min: 1280 },
+        frameRate: { ideal: 30 }
+      }
     }).then(s => {
       stream = s;
       video.srcObject = s;

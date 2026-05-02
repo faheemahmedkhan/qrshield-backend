@@ -6,306 +6,293 @@
   <title>QR Scanner — QRShield</title>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#000; overflow:hidden; font-family:'Inter','Segoe UI',sans-serif; height:100dvh; }
-    #camWrap { position:relative; width:100vw; height:100dvh; }
-    #video   { width:100%; height:100%; object-fit:cover; display:block; }
-    #overlay { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-    #topBar  {
-      position:absolute; top:0; left:0; right:0; padding:16px 18px 0;
-      background:linear-gradient(rgba(0,0,0,0.65),transparent);
-      display:flex; align-items:center; gap:10px; z-index:10;
-    }
-    .logo { color:#3d84ff; font-size:0.95rem; font-weight:800; letter-spacing:0.06em; }
-    .live-dot { width:7px; height:7px; background:#ff3b3b; border-radius:50%; animation:blink 1.2s infinite; }
-    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.15;} }
-    #guideLabel {
-      position:absolute; z-index:10; left:0; right:0; text-align:center;
-      color:rgba(255,255,255,0.85); font-size:0.8rem; font-weight:600;
-      letter-spacing:0.04em; pointer-events:none;
-    }
-    #bottomBar {
-      position:absolute; bottom:0; left:0; right:0; padding:14px 24px 40px;
-      background:linear-gradient(transparent,rgba(0,0,0,0.92));
-      display:flex; flex-direction:column; align-items:center; gap:12px; z-index:10;
-    }
-    #hint {
-      color:#fff; font-size:0.88rem; font-weight:600; text-align:center;
-      min-height:1.3em; transition:color 0.3s;
-    }
-    #hint.detected  { color:#00ff88; }
-    #hint.uploading { color:#3d84ff; }
-    #hint.error     { color:#ff4757; }
-    #progressBar { width:60%; height:3px; background:#3d84ff; border-radius:2px; transition:width 0.4s ease; display:none; }
-    #btnRow { display:flex; align-items:center; justify-content:center; gap:24px; width:100%; }
-    #captureBtn {
-      width:70px; height:70px; border-radius:50%; background:#fff;
-      border:5px solid rgba(255,255,255,0.4); cursor:pointer;
-      display:flex; align-items:center; justify-content:center; flex-shrink:0;
-      transition:transform 0.12s, background 0.15s;
-    }
-    #captureBtn:active { transform:scale(0.88); background:#ddd; }
-    #captureBtn.disabled { opacity:0.4; pointer-events:none; }
-    .shutter-inner { width:52px; height:52px; border-radius:50%; background:#fff; border:3px solid #333; }
-    #cancelBtn {
-      background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.25);
-      color:#fff; padding:10px 28px; border-radius:999px;
-      font-size:0.85rem; font-weight:600; cursor:pointer; transition:background 0.2s;
-    }
-    #cancelBtn:hover { background:rgba(255,255,255,0.22); }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#000;overflow:hidden;font-family:'Inter',sans-serif;height:100dvh}
+    #camWrap{position:relative;width:100vw;height:100dvh}
+    #video{width:100%;height:100%;object-fit:cover;display:block}
+    #overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+    #topBar{position:absolute;top:0;left:0;right:0;padding:16px 18px 0;background:linear-gradient(rgba(0,0,0,0.65),transparent);display:flex;align-items:center;gap:10px;z-index:10}
+    .logo{color:#3d84ff;font-size:.95rem;font-weight:800;letter-spacing:.06em}
+    .live-dot{width:7px;height:7px;background:#ff3b3b;border-radius:50%;animation:blink 1.2s infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+    #guideLabel{position:absolute;z-index:10;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:.8rem;font-weight:600;letter-spacing:.04em;pointer-events:none;transition:color .3s}
+    #guideLabel.found{color:#00ff88}
+    #bottomBar{position:absolute;bottom:0;left:0;right:0;padding:14px 24px 40px;background:linear-gradient(transparent,rgba(0,0,0,0.92));display:flex;flex-direction:column;align-items:center;gap:12px;z-index:10}
+    #hint{color:#fff;font-size:.88rem;font-weight:600;text-align:center;min-height:1.3em;transition:color .3s}
+    #hint.found{color:#00ff88}
+    #hint.uploading{color:#3d84ff}
+    #hint.error{color:#ff4757}
+    #progressBar{width:60%;height:3px;background:#3d84ff;border-radius:2px;transition:width .4s ease;display:none}
+    #btnRow{display:flex;align-items:center;justify-content:center;gap:24px;width:100%}
+    #captureBtn{width:70px;height:70px;border-radius:50%;background:#fff;border:5px solid rgba(255,255,255,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .12s,background .15s,border-color .3s}
+    #captureBtn.ready{border-color:#00ff88;box-shadow:0 0 18px rgba(0,255,136,.5)}
+    #captureBtn:active{transform:scale(.88);background:#ddd}
+    #captureBtn.disabled{opacity:.4;pointer-events:none}
+    .shutter-inner{width:52px;height:52px;border-radius:50%;background:#fff;border:3px solid #333}
+    #cancelBtn{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);color:#fff;padding:10px 28px;border-radius:999px;font-size:.85rem;font-weight:600;cursor:pointer;transition:background .2s}
+    #cancelBtn:hover{background:rgba(255,255,255,.22)}
   </style>
 </head>
 <body>
-  <div id="camWrap">
-    <video id="video" autoplay playsinline muted></video>
-    <canvas id="overlay"></canvas>
-    <div id="topBar"><div class="live-dot"></div><span class="logo">QRShield</span></div>
-    <div id="guideLabel">Align QR code inside the square frame</div>
-    <div id="bottomBar">
-      <div id="hint">📷 Tap the shutter button to capture</div>
-      <div id="progressBar"></div>
-      <div id="btnRow">
-        <button id="cancelBtn" onclick="stopAndGo('/')">✕ Cancel</button>
-        <button id="captureBtn"><div class="shutter-inner"></div></button>
-      </div>
+<div id="camWrap">
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="overlay"></canvas>
+  <div id="topBar"><div class="live-dot"></div><span class="logo">QRShield</span></div>
+  <div id="guideLabel">Align QR code inside the frame</div>
+  <div id="bottomBar">
+    <div id="hint">📷 Point at a QR code — tap Capture when highlighted</div>
+    <div id="progressBar"></div>
+    <div id="btnRow">
+      <button id="cancelBtn" onclick="stopAndGo('/')">✕ Cancel</button>
+      <button id="captureBtn"><div class="shutter-inner"></div></button>
     </div>
   </div>
+</div>
 
-  <script>
-    const video       = document.getElementById('video');
-    const overlay     = document.getElementById('overlay');
-    const hint        = document.getElementById('hint');
-    const progressBar = document.getElementById('progressBar');
-    const captureBtn  = document.getElementById('captureBtn');
-    const guideLabel  = document.getElementById('guideLabel');
-    const ctx         = overlay.getContext('2d', { willReadFrequently: true });
+<script>
+  const video      = document.getElementById('video');
+  const overlay    = document.getElementById('overlay');
+  const hint       = document.getElementById('hint');
+  const progressBar= document.getElementById('progressBar');
+  const captureBtn = document.getElementById('captureBtn');
+  const guideLabel = document.getElementById('guideLabel');
+  const ctx        = overlay.getContext('2d', {willReadFrequently:true});
 
-    let stream   = null;
-    let scanning = true;
-    let lastFrame = null;
+  let stream    = null;
+  let animating = true;
+  let lastFrame = null;   // display-space frame {x0,y0,size}
+  let lastQR    = null;   // detected QR in VIDEO coords {pts,minX,minY,maxX,maxY}
 
-    function stopAndGo(url) {
-      if (stream) stream.getTracks().forEach(t => t.stop());
-      window.location.href = url;
+  function stopAndGo(url){
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    window.location.href = url;
+  }
+
+  // ── Grayscale + contrast stretch ──────────────────────────────────────
+  function toGrayscale(gCtx, w, h){
+    const d = gCtx.getImageData(0,0,w,h);
+    let mn=255,mx=0;
+    for(let i=0;i<d.data.length;i+=4){
+      const g=Math.round(.299*d.data[i]+.587*d.data[i+1]+.114*d.data[i+2]);
+      d.data[i]=d.data[i+1]=d.data[i+2]=g;
+      if(g<mn)mn=g; if(g>mx)mx=g;
     }
-
-    // ── Grayscale + contrast stretch ──────────────────────────────────────
-    function toGrayscale(gCtx, w, h) {
-      const d = gCtx.getImageData(0, 0, w, h);
-      let mn = 255, mx = 0;
-      for (let i = 0; i < d.data.length; i += 4) {
-        const g = Math.round(0.299*d.data[i] + 0.587*d.data[i+1] + 0.114*d.data[i+2]);
-        d.data[i] = d.data[i+1] = d.data[i+2] = g;
-        if (g < mn) mn = g; if (g > mx) mx = g;
-      }
-      const range = mx - mn || 1;
-      for (let i = 0; i < d.data.length; i += 4) {
-        const s = Math.round((d.data[i] - mn) / range * 255);
-        d.data[i] = d.data[i+1] = d.data[i+2] = s;
-      }
-      gCtx.putImageData(d, 0, 0);
+    const r=mx-mn||1;
+    for(let i=0;i<d.data.length;i+=4){
+      const s=Math.round((d.data[i]-mn)/r*255);
+      d.data[i]=d.data[i+1]=d.data[i+2]=s;
     }
+    gCtx.putImageData(d,0,0);
+  }
 
-    // ── Draw TRUE SQUARE frame in screen (CSS) pixels ─────────────────────
-    function drawFrame(state) {
-      const dw = video.clientWidth  || window.innerWidth;
-      const dh = video.clientHeight || window.innerHeight;
-      overlay.width  = dw;
-      overlay.height = dh;
-      ctx.clearRect(0, 0, dw, dh);
+  // ── Draw overlay frame + QR highlight box ────────────────────────────
+  function drawFrame(state){
+    const dw = video.clientWidth  || window.innerWidth;
+    const dh = video.clientHeight || window.innerHeight;
+    overlay.width=dw; overlay.height=dh;
+    ctx.clearRect(0,0,dw,dh);
 
-      const size = Math.round(Math.min(dw, dh) * 0.80);
-      const x0   = Math.round((dw - size) / 2);
-      const y0   = Math.round((dh - size) / 2);
-      const arm  = Math.round(size * 0.14);
-      lastFrame  = { x0, y0, size, dw, dh };
+    const size = Math.round(Math.min(dw,dh)*0.80);
+    const x0   = Math.round((dw-size)/2);
+    const y0   = Math.round((dh-size)/2);
+    const arm  = Math.round(size*0.14);
+    lastFrame  = {x0,y0,size,dw,dh};
+    guideLabel.style.top = Math.max(54, y0-36)+'px';
 
-      guideLabel.style.top = Math.max(54, y0 - 36) + 'px';
+    // Dim outside
+    ctx.fillStyle='rgba(0,0,0,0.52)';
+    ctx.fillRect(0,0,dw,dh);
+    ctx.clearRect(x0,y0,size,size);
 
-      ctx.fillStyle = 'rgba(0,0,0,0.55)';
-      ctx.fillRect(0, 0, dw, dh);
-      ctx.clearRect(x0, y0, size, size);
+    // Tints
+    if(state==='found')    {ctx.fillStyle='rgba(0,255,136,0.12)'; ctx.fillRect(x0,y0,size,size);}
+    if(state==='uploading'){ctx.fillStyle='rgba(61,132,255,0.15)'; ctx.fillRect(x0,y0,size,size);}
 
-      if (state === 'detected')  { ctx.fillStyle = 'rgba(0,255,136,0.18)'; ctx.fillRect(x0, y0, size, size); }
-      if (state === 'uploading') { ctx.fillStyle = 'rgba(61,132,255,0.18)'; ctx.fillRect(x0, y0, size, size); }
-
-      const color = state === 'detected' ? '#00ff88' : state === 'uploading' ? '#3d84ff' : '#ffffff';
-      ctx.strokeStyle = color; ctx.lineWidth = 5; ctx.lineCap = 'round';
-      [[x0,y0,1,1],[x0+size,y0,-1,1],[x0,y0+size,1,-1],[x0+size,y0+size,-1,-1]].forEach(([x,y,dx,dy])=>{
-        ctx.beginPath(); ctx.moveTo(x+dx*arm,y); ctx.lineTo(x,y); ctx.lineTo(x,y+dy*arm); ctx.stroke();
-      });
-
-      if (state === 'scanning') {
-        const scanY = y0 + size * ((Date.now() % 2000) / 2000);
-        const g = ctx.createLinearGradient(x0, scanY-12, x0, scanY+12);
-        g.addColorStop(0,'transparent'); g.addColorStop(0.5,'rgba(61,132,255,0.75)'); g.addColorStop(1,'transparent');
-        ctx.fillStyle = g; ctx.fillRect(x0, scanY-12, size, 24);
-      }
-    }
-
-    // ── CAPTURE: crop center square from RAW VIDEO, then tighter with jsQR ─
-    function processCapture() {
-      if (!scanning) return;
-      scanning = false;
-      captureBtn.classList.add('disabled');
-
-      const vw = video.videoWidth;
-      const vh = video.videoHeight;
-
-      if (!vw || !vh) {
-        hint.textContent = '❌ Camera not ready. Try again.';
-        hint.className = 'error';
-        scanning = true; captureBtn.classList.remove('disabled');
-        return;
-      }
-
-      // ── Step 1: Crop center square of video
-      // 80% of shorter video dimension, centered — matches the square frame on screen
-      const cropSize = Math.round(Math.min(vw, vh) * 0.80);
-      const cx = Math.round((vw - cropSize) / 2);
-      const cy = Math.round((vh - cropSize) / 2);
-
-      const OUT = 1280; // high-res output for better DL accuracy
-      const frameCanvas = document.createElement('canvas');
-      frameCanvas.width = OUT; frameCanvas.height = OUT;
-      const fCtx = frameCanvas.getContext('2d', { willReadFrequently: true });
-      fCtx.drawImage(video, cx, cy, cropSize, cropSize, 0, 0, OUT, OUT);
-
-      // ── Step 2: Multi-pass jsQR detection for maximum boundary accuracy
-      let qr = null;
-
-      // Pass 1: raw color image (fastest)
-      const rawId = fCtx.getImageData(0, 0, OUT, OUT);
-      qr = jsQR(rawId.data, OUT, OUT, { inversionAttempts: 'attemptBoth' });
-
-      // Pass 2: grayscale + contrast stretch (finds QR in poor/uneven lighting)
-      if (!qr) {
-        const gCanvas = document.createElement('canvas');
-        gCanvas.width = OUT; gCanvas.height = OUT;
-        const gCtx = gCanvas.getContext('2d', { willReadFrequently: true });
-        gCtx.drawImage(frameCanvas, 0, 0);
-        toGrayscale(gCtx, OUT, OUT); // contrast stretch makes edges pop
-        const gId = gCtx.getImageData(0, 0, OUT, OUT);
-        qr = jsQR(gId.data, OUT, OUT, { inversionAttempts: 'attemptBoth' });
-      }
-
-      // ── Step 3: Tight crop using all 4 QR corners → forced square → scale to OUT
-      let finalCanvas;
-      if (qr && qr.location) {
-        const pts = [
-          qr.location.topLeftCorner,
-          qr.location.topRightCorner,
-          qr.location.bottomRightCorner,
-          qr.location.bottomLeftCorner
-        ];
-
-        const rawMinX = Math.min(...pts.map(p => p.x));
-        const rawMinY = Math.min(...pts.map(p => p.y));
-        const rawMaxX = Math.max(...pts.map(p => p.x));
-        const rawMaxY = Math.max(...pts.map(p => p.y));
-
-        // Proportional quiet zone: 4% of detected QR size
-        const qrSpan = Math.max(rawMaxX - rawMinX, rawMaxY - rawMinY);
-        const pad    = Math.round(qrSpan * 0.04);
-
-        let minX = Math.max(0,   rawMinX - pad);
-        let minY = Math.max(0,   rawMinY - pad);
-        let maxX = Math.min(OUT, rawMaxX + pad);
-        let maxY = Math.min(OUT, rawMaxY + pad);
-
-        // Force the bounding box to be SQUARE (required for DL model)
-        const boxW = maxX - minX;
-        const boxH = maxY - minY;
-        if (boxW > boxH) {
-          const expand = (boxW - boxH) / 2;
-          minY = Math.max(0,   minY - expand);
-          maxY = Math.min(OUT, maxY + expand);
-        } else if (boxH > boxW) {
-          const expand = (boxH - boxW) / 2;
-          minX = Math.max(0,   minX - expand);
-          maxX = Math.min(OUT, maxX + expand);
-        }
-
-        const sqSize = maxX - minX; // now guaranteed square (or as close as bounds allow)
-
-        finalCanvas = document.createElement('canvas');
-        finalCanvas.width = OUT; finalCanvas.height = OUT;
-        finalCanvas.getContext('2d').drawImage(frameCanvas, minX, minY, sqSize, sqSize, 0, 0, OUT, OUT);
-
-        hint.textContent = '✅ QR boundaries detected — tight crop applied';
-        hint.className   = 'detected';
-      } else {
-        // jsQR couldn't detect — fall back to frame square crop
-        finalCanvas = frameCanvas;
-        hint.textContent = '📐 Frame crop used — position QR better next time';
-        hint.className   = '';
-      }
-
-      drawFrame('detected');
-
-      // ── Step 4: Grayscale + contrast stretch on the final tight crop
-      toGrayscale(finalCanvas.getContext('2d'), OUT, OUT);
-
-
-      // ── Step 4: Store preview for main page to display
-      sessionStorage.setItem('qrCapturePreview', finalCanvas.toDataURL('image/jpeg', 0.92));
-
-      // ── Step 5: Upload
-      setTimeout(() => {
-        drawFrame('uploading');
-        hint.textContent = '⬆ Uploading to server…';
-        hint.className   = 'uploading';
-        progressBar.style.display = 'block';
-        progressBar.style.width   = '30%';
-        if (stream) stream.getTracks().forEach(t => t.stop());
-
-        finalCanvas.toBlob(blob => {
-          progressBar.style.width = '65%';
-          const form = new FormData();
-          form.append('file', blob, 'scan.jpg');
-          fetch('/scan', { method: 'POST', body: form })
-            .then(r => r.json())
-            .then(result => {
-              progressBar.style.width = '100%';
-              sessionStorage.setItem('qrScanResult', JSON.stringify(result));
-              setTimeout(() => { window.location.href = '/'; }, 280);
-            })
-            .catch(err => {
-              hint.textContent = '❌ Upload failed: ' + err.message;
-              hint.className   = 'error';
-              progressBar.style.display = 'none';
-              scanning = true;
-              captureBtn.classList.remove('disabled');
-            });
-        }, 'image/jpeg', 0.97);
-      }, 350);
-    }
-
-    // ── Animation loop ────────────────────────────────────────────────────
-    function loop() {
-      drawFrame(scanning ? 'scanning' : 'detected');
-      if (scanning) requestAnimationFrame(loop);
-    }
-
-    // Manual capture ONLY — no auto-detect
-    captureBtn.addEventListener('click', processCapture);
-
-    // ── Start camera ──────────────────────────────────────────────────────
-    navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: 'environment' },
-        width:  { ideal: 4096, min: 1280 },
-        height: { ideal: 4096, min: 1280 },
-        frameRate: { ideal: 30 }
-      }
-    }).then(s => {
-      stream = s;
-      video.srcObject = s;
-      video.onloadedmetadata = () => loop();
-    }).catch(() => {
-      hint.textContent = '❌ Camera access denied. Please allow camera permission and reload.';
-      hint.className   = 'error';
+    // Corner L-shapes
+    const color = state==='found'?'#00ff88':state==='uploading'?'#3d84ff':'#ffffff';
+    ctx.strokeStyle=color; ctx.lineWidth=5; ctx.lineCap='round';
+    [[x0,y0,1,1],[x0+size,y0,-1,1],[x0,y0+size,1,-1],[x0+size,y0+size,-1,-1]].forEach(([x,y,dx,dy])=>{
+      ctx.beginPath(); ctx.moveTo(x+dx*arm,y); ctx.lineTo(x,y); ctx.lineTo(x,y+dy*arm); ctx.stroke();
     });
-  </script>
+
+    // Live QR bounding box (green rect around detected QR on screen)
+    if(lastQR && state==='found'){
+      const vw=video.videoWidth, vh=video.videoHeight;
+      if(vw && vh){
+        // Map video coords → display coords inside the frame
+        // The frame area covers cropRegion of the video, displayed as size×size on screen
+        const cr = Math.round(Math.min(vw,vh)*0.80);
+        const cropX = Math.round((vw-cr)/2);
+        const cropY = Math.round((vh-cr)/2);
+        const scaleD = size / cr; // video crop pixels → display pixels
+
+        const bx = x0 + (lastQR.minX - cropX) * scaleD;
+        const by = y0 + (lastQR.minY - cropY) * scaleD;
+        const bw = (lastQR.maxX - lastQR.minX) * scaleD;
+        const bh = (lastQR.maxY - lastQR.minY) * scaleD;
+
+        ctx.strokeStyle='#00ff88'; ctx.lineWidth=3; ctx.lineCap='square';
+        ctx.strokeRect(bx-4, by-4, bw+8, bh+8);
+      }
+    }
+
+    // Scan line
+    if(state==='scanning'){
+      const scanY = y0 + size*((Date.now()%2000)/2000);
+      const g=ctx.createLinearGradient(x0,scanY-12,x0,scanY+12);
+      g.addColorStop(0,'transparent'); g.addColorStop(.5,'rgba(61,132,255,.75)'); g.addColorStop(1,'transparent');
+      ctx.fillStyle=g; ctx.fillRect(x0,scanY-12,size,24);
+    }
+  }
+
+  // ── Continuous live QR detection (background) ─────────────────────────
+  const sc=document.createElement('canvas');
+  const scCtx=sc.getContext('2d',{willReadFrequently:true});
+
+  function liveDetect(){
+    const vw=video.videoWidth, vh=video.videoHeight;
+    if(!vw||!vh) return;
+
+    const cr = Math.round(Math.min(vw,vh)*0.80);
+    const cropX = Math.round((vw-cr)/2);
+    const cropY = Math.round((vh-cr)/2);
+
+    // Scan at 50% for speed
+    const sw = Math.round(cr*0.5);
+    sc.width=sw; sc.height=sw;
+    scCtx.drawImage(video, cropX, cropY, cr, cr, 0, 0, sw, sw);
+    const id=scCtx.getImageData(0,0,sw,sw);
+    const qr=jsQR(id.data,sw,sw,{inversionAttempts:'attemptBoth'});
+
+    if(qr && qr.location){
+      // Scale detected corners back to FULL VIDEO coords
+      const scale = cr/sw;
+      const pts=[qr.location.topLeftCorner,qr.location.topRightCorner,
+                 qr.location.bottomRightCorner,qr.location.bottomLeftCorner];
+      const vPts=pts.map(p=>({x:cropX+p.x*scale, y:cropY+p.y*scale}));
+      lastQR={
+        pts:vPts,
+        minX:Math.min(...vPts.map(p=>p.x)),
+        minY:Math.min(...vPts.map(p=>p.y)),
+        maxX:Math.max(...vPts.map(p=>p.x)),
+        maxY:Math.max(...vPts.map(p=>p.y))
+      };
+      hint.textContent='✅ QR detected — tap Capture!';
+      hint.className='found';
+      guideLabel.className='found';
+      captureBtn.classList.add('ready');
+    } else {
+      lastQR=null;
+      hint.textContent='📷 Point at a QR code — tap Capture when highlighted';
+      hint.className='';
+      guideLabel.className='';
+      captureBtn.classList.remove('ready');
+    }
+  }
+
+  // ── Animation loop ────────────────────────────────────────────────────
+  function loop(){
+    const state = lastQR ? 'found' : 'scanning';
+    drawFrame(state);
+    if(animating) requestAnimationFrame(loop);
+  }
+
+  // ── CAPTURE button: use already-known QR coords ───────────────────────
+  captureBtn.addEventListener('click', ()=>{
+    if(!animating) return;
+    animating = false;
+    captureBtn.classList.add('disabled');
+
+    const vw=video.videoWidth, vh=video.videoHeight;
+    if(!vw||!vh){
+      hint.textContent='❌ Camera not ready. Try again.';
+      hint.className='error';
+      animating=true; captureBtn.classList.remove('disabled');
+      return;
+    }
+
+    const OUT=1280;
+    const finalCanvas=document.createElement('canvas');
+    finalCanvas.width=OUT; finalCanvas.height=OUT;
+    const fCtx=finalCanvas.getContext('2d');
+
+    if(lastQR){
+      // ── Precise crop using live-detected QR boundaries ──────────────
+      const qrSpan=Math.max(lastQR.maxX-lastQR.minX, lastQR.maxY-lastQR.minY);
+      const pad=Math.round(qrSpan*0.05); // 5% quiet zone
+
+      let minX=Math.max(0,   lastQR.minX-pad);
+      let minY=Math.max(0,   lastQR.minY-pad);
+      let maxX=Math.min(vw,  lastQR.maxX+pad);
+      let maxY=Math.min(vh,  lastQR.maxY+pad);
+
+      // Force square
+      const bw=maxX-minX, bh=maxY-minY;
+      if(bw>bh){const e=(bw-bh)/2; minY=Math.max(0,minY-e); maxY=Math.min(vh,maxY+e);}
+      else     {const e=(bh-bw)/2; minX=Math.max(0,minX-e); maxX=Math.min(vw,maxX+e);}
+      const sq=maxX-minX;
+
+      fCtx.drawImage(video, minX, minY, sq, sq, 0, 0, OUT, OUT);
+      hint.textContent='✅ Tight QR crop — uploading…';
+      hint.className='found';
+    } else {
+      // Fallback: center 80% square crop
+      const cr=Math.round(Math.min(vw,vh)*0.80);
+      const cx=Math.round((vw-cr)/2);
+      const cy=Math.round((vh-cr)/2);
+      fCtx.drawImage(video, cx, cy, cr, cr, 0, 0, OUT, OUT);
+      hint.textContent='📐 Frame crop — uploading…';
+    }
+
+    drawFrame('uploading');
+
+    // Grayscale + contrast stretch
+    toGrayscale(fCtx, OUT, OUT);
+
+    // Store preview for main page
+    sessionStorage.setItem('qrCapturePreview', finalCanvas.toDataURL('image/jpeg',0.92));
+
+    progressBar.style.display='block';
+    progressBar.style.width='25%';
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+
+    finalCanvas.toBlob(blob=>{
+      progressBar.style.width='60%';
+      hint.textContent='⬆ Uploading to server…';
+      hint.className='uploading';
+      const form=new FormData();
+      form.append('file', blob, 'scan.jpg');
+      fetch('/scan',{method:'POST',body:form})
+        .then(r=>r.json())
+        .then(result=>{
+          progressBar.style.width='100%';
+          sessionStorage.setItem('qrScanResult',JSON.stringify(result));
+          setTimeout(()=>{window.location.href='/';},280);
+        })
+        .catch(err=>{
+          hint.textContent='❌ Upload failed: '+err.message;
+          hint.className='error';
+          progressBar.style.display='none';
+          animating=true;
+          captureBtn.classList.remove('disabled');
+        });
+    },'image/jpeg',0.97);
+  });
+
+  // ── Start camera ──────────────────────────────────────────────────────
+  navigator.mediaDevices.getUserMedia({
+    video:{facingMode:{ideal:'environment'}, width:{ideal:4096,min:1280}, height:{ideal:4096,min:1280}, frameRate:{ideal:30}}
+  }).then(s=>{
+    stream=s;
+    video.srcObject=s;
+    video.onloadedmetadata=()=>{
+      loop();
+      setInterval(liveDetect, 200); // scan for QR every 200ms
+    };
+  }).catch(()=>{
+    hint.textContent='❌ Camera access denied. Please allow camera permission and reload.';
+    hint.className='error';
+  });
+</script>
 </body>
 </html>

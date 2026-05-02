@@ -2126,10 +2126,6 @@
       // PDF Export
 
 
-
-      // Keep-alive: ping server every 10 min to prevent Render free-tier sleep
-      setInterval(() => { fetch('/ping').catch(() => {}); }, 600000);
-
       // Live Threat Feed Ticker (Real Database)
       const tickerContent = document.getElementById('tickerContent');
       async function updateTicker() {

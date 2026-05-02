@@ -1,10 +1,9 @@
-import cv2
+import cv2 # trigger sync 2
 from pyzbar.pyzbar import decode
 import joblib
 import pandas as pd
 import re
 import requests
-import sqlite3
 import dns.resolver
 import tldextract
 from urllib.parse import urlparse
@@ -88,57 +87,25 @@ def is_short_url(url):
 # ======================================
 
 def get_domain_age(domain):
-    """Fix 2: Check SQLite cache first (24h TTL) before calling RapidAPI."""
-    try:
-        conn = sqlite3.connect("scans.db", timeout=3)
-        c = conn.cursor()
-        c.execute(
-            "SELECT age_days, available FROM whois_cache "
-            "WHERE domain = ? AND cached_at >= datetime('now', '-1 day')",
-            (domain,)
-        )
-        row = c.fetchone()
-        conn.close()
-        if row:
-            return row[0], row[1]   # cache hit — no API call needed
-    except Exception:
-        pass
-
-    # Cache miss — call the API
     headers = {
         "X-RapidAPI-Key":  RAPIDAPI_KEY,
         "X-RapidAPI-Host": RAPIDAPI_HOST,
     }
-    age, available = WHOIS_FALLBACK_AGE_DAYS, 0
     try:
         resp = requests.get(
             RAPIDAPI_ENDPOINT,
             headers=headers,
             params={"domains": domain},
-            timeout=8,
+            timeout=10,
         )
         data = resp.json()
         if domain in data:
-            raw = data[domain].get("age_days")
-            if raw is not None:
-                age, available = max(0, min(int(raw), WHOIS_MAX_AGE_DAYS)), 1
+            age = data[domain].get("age_days")
+            if age is not None:
+                return max(0, min(int(age), WHOIS_MAX_AGE_DAYS)), 1
     except Exception:
         pass
-
-    # Store in cache
-    try:
-        conn = sqlite3.connect("scans.db", timeout=3)
-        c = conn.cursor()
-        c.execute(
-            "INSERT OR REPLACE INTO whois_cache (domain, age_days, available) VALUES (?, ?, ?)",
-            (domain, age, available)
-        )
-        conn.commit()
-        conn.close()
-    except Exception:
-        pass
-
-    return age, available
+    return WHOIS_FALLBACK_AGE_DAYS, 0
 
 # ======================================
 # FEATURE EXTRACTION
@@ -195,9 +162,9 @@ def extract_features(url):
     except Exception:
         features["has_mx_record"] = 0
 
-    # HTTP — Fix 3: timeout reduced 5s → 3s (slow servers are suspicious anyway)
+    # HTTP
     try:
-        resp = requests.get(url, timeout=3, allow_redirects=True)
+        resp = requests.get(url, timeout=5, allow_redirects=True)
         features["http_status_code"] = resp.status_code
         features["redirect_count"]   = len(resp.history)
         features["ssl_valid"]        = 1 if url.startswith("https") else 0

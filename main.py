@@ -29,15 +29,7 @@ def init_db():
     conn = sqlite3.connect("scans.db")
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS scans
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  url TEXT, status TEXT,
-                  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
-    # Fix 2: WHOIS cache table — avoids repeat API calls for same domain
-    c.execute('''CREATE TABLE IF NOT EXISTS whois_cache
-                 (domain TEXT PRIMARY KEY,
-                  age_days INTEGER,
-                  available INTEGER,
-                  cached_at DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, url TEXT, status TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
     conn.commit()
     conn.close()
 
@@ -134,49 +126,46 @@ def gamma_correction(img, gamma):
 # Robust decode
 # ──────────────────────────────────────────
 def robust_decode(pil_image):
-    """Fix 1: Slimmed from 224 attempts → 28 attempts.
-    jsQR already crops + preprocesses on the client, so the server
-    only needs a fast targeted set of passes."""
     save_debug(pil_image, "orig")
-
-    # Pass 1 — image as-is (most common success path)
-    r = try_pyzbar(pil_image)
+    r = try_pyzbar(pil_image);   
     if r: return r, "pyzbar:orig"
     r = try_opencv_qr(pil_image)
     if r: return r, "opencv:orig"
 
-    # Pass 2 — fast preprocessors only (no slow denoise)
-    fast_pre = [
+    scales    = [1, 1.5, 2, 3]
+    rotations = [0, 90, 180, 270]
+    pre_funcs = [
+        lambda x: x,
         lambda x: ImageOps.autocontrast(x),
-        lambda x: adaptive_threshold_cv(ImageOps.autocontrast(x)),
         lambda x: x.filter(ImageFilter.UnsharpMask(1, 150, 3)),
+        lambda x: denoise_cv(ImageOps.autocontrast(x)),
+        lambda x: adaptive_threshold_cv(ImageOps.autocontrast(x)),
         lambda x: gamma_correction(ImageOps.autocontrast(x), 0.8),
+        lambda x: gamma_correction(ImageOps.autocontrast(x), 1.2),
     ]
-    for pf in fast_pre:
-        ti = pf(pil_image)
-        r  = try_pyzbar(ti)
-        if r: return r, "pyzbar:preproc"
-        r  = try_opencv_qr(ti)
-        if r: return r, "opencv:preproc"
 
-    # Pass 3 — upscale × 2 with fast preprocessors
-    scaled = upscale_image(pil_image, 2)
-    for pf in fast_pre:
-        ti = pf(scaled)
-        r  = try_pyzbar(ti)
-        if r: return r, "pyzbar:2x"
-        r  = try_opencv_qr(ti)
-        if r: return r, "opencv:2x"
+    for scale in scales:
+        scaled = pil_image if scale == 1 else upscale_image(pil_image, scale)
+        for rot in rotations:
+            cand = scaled.rotate(rot, expand=True) if rot != 0 else scaled
+            for pf in pre_funcs:
+                ti = pf(cand)
+                r  = try_pyzbar(ti)
+                if r: return r, f"pyzbar:s{scale}_r{rot}"
+                r  = try_opencv_qr(ti)
+                if r: return r, f"opencv:s{scale}_r{rot}"
 
-    # Pass 4 — Otsu last resort
+    # Last-resort Otsu
     try:
         arr = np.array(pil_image.convert("L"))
-        _, thr = cv2.threshold(arr, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        timg  = Image.fromarray(thr)
-        r = try_pyzbar(timg)
-        if r: return r, "pyzbar:otsu"
-        r = try_opencv_qr(timg)
-        if r: return r, "opencv:otsu"
+        for k in [3, 5, 7]:
+            b     = cv2.medianBlur(arr, k)
+            _, thr = cv2.threshold(b, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            timg  = Image.fromarray(thr)
+            r = try_pyzbar(timg)
+            if r: return r, f"pyzbar:otsu_k{k}"
+            r = try_opencv_qr(timg)
+            if r: return r, f"opencv:otsu_k{k}"
     except Exception:
         pass
 
@@ -363,13 +352,4 @@ async def recent_scans():
         return {"scans": [{"url": r[0], "status": r[1]} for r in rows]}
     except Exception as e:
         return {"scans": []}
-
-# ──────────────────────────────────────────
-# Fix 4: Keep-alive ping — prevents Render free-tier sleep
-# ──────────────────────────────────────────
-@app.get("/ping")
-async def ping():
-    """Lightweight endpoint pinged by the client every 10 minutes
-    to keep the Render free-tier instance warm."""
-    return {"status": "ok"}
 
